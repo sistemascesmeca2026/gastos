@@ -10,11 +10,12 @@ export async function GET() {
         p.descripcion AS partida_descripcion,
         c.clave AS capitulo_clave,
         c.nombre AS capitulo_nombre,
+        f.clave AS funcion_clave,
         f.nombre AS funcion_nombre
       FROM partidas p
       JOIN capitulos c ON c.id = p.capitulo_id
       JOIN funciones f ON f.id = c.funcion_id
-      ORDER BY f.nombre, c.clave, p.clave
+      ORDER BY f.clave, c.clave, p.clave
     `);
     return NextResponse.json(result.rows);
   } catch (err: any) {

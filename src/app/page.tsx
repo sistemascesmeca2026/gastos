@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Dashboard from '@/components/Dashboard';
 
 type Partida = {
   id: number;
@@ -8,6 +9,7 @@ type Partida = {
   partida_descripcion: string;
   capitulo_clave: string;
   capitulo_nombre: string;
+  funcion_clave: string;
   funcion_nombre: string;
 };
 
@@ -75,6 +77,7 @@ function agruparPorFuncion(saldos: Saldo[]) {
 }
 
 const TABS = [
+  { key: 'dashboard', label: 'Dashboard' },
   { key: 'captura', label: 'Captura de oficios' },
   { key: 'presupuesto', label: 'Presupuesto por función' },
   { key: 'movimientos', label: 'Movimientos capturados' },
@@ -83,7 +86,7 @@ const TABS = [
 type TabKey = typeof TABS[number]['key'];
 
 export default function Home() {
-  const [tab, setTab] = useState<TabKey>('presupuesto');
+  const [tab, setTab] = useState<TabKey>('dashboard');
   const [partidas, setPartidas] = useState<Partida[]>([]);
   const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
   const [saldos, setSaldos] = useState<Saldo[]>([]);
@@ -104,6 +107,23 @@ export default function Home() {
     observaciones: '',
     capturado_por: '',
   });
+
+  const [funcionSel, setFuncionSel] = useState('');
+  const [capituloSel, setCapituloSel] = useState('');
+
+  const funciones = Array.from(
+    new Map(partidas.map((p) => [p.funcion_nombre, `${p.funcion_clave} ${p.funcion_nombre}`])).entries()
+  ).sort((a, b) => a[1].localeCompare(b[1]));
+  const capitulos = Array.from(
+    new Set(
+      partidas
+        .filter((p) => p.funcion_nombre === funcionSel)
+        .map((p) => `${p.capitulo_clave} · ${p.capitulo_nombre}`)
+    )
+  ).sort();
+  const partidasFiltradas = partidas.filter(
+    (p) => p.funcion_nombre === funcionSel && `${p.capitulo_clave} · ${p.capitulo_nombre}` === capituloSel
+  );
 
   const cargarTodo = () => {
     return Promise.all([
@@ -154,6 +174,8 @@ export default function Home() {
           observaciones: '',
           capturado_por: '',
         });
+        setFuncionSel('');
+        setCapituloSel('');
         cargarTodo();
       }
     } catch (err: any) {
@@ -214,6 +236,8 @@ export default function Home() {
       </div>
 
       {loading && <p style={{ color: '#999' }}>Cargando...</p>}
+
+      {!loading && tab === 'dashboard' && <Dashboard />}
 
       {!loading && tab === 'presupuesto' && (
         <>
@@ -305,12 +329,53 @@ export default function Home() {
       {!loading && tab === 'captura' && (
         <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, background: '#1a1a1a', padding: 20, borderRadius: 10 }}>
           <div style={{ gridColumn: '1 / -1' }}>
-            <label style={labelStyle}>Partida (función · capítulo · clave)</label>
-            <select style={inputStyle} value={form.partida_id} onChange={(e) => setForm({ ...form, partida_id: e.target.value })}>
-              <option value="">Selecciona una partida...</option>
-              {partidas.map((p) => (
+            <label style={labelStyle}>Función / Programa</label>
+            <select
+              style={inputStyle}
+              value={funcionSel}
+              onChange={(e) => {
+                setFuncionSel(e.target.value);
+                setCapituloSel('');
+                setForm({ ...form, partida_id: '' });
+              }}
+            >
+              <option value="">Selecciona una función...</option>
+              {funciones.map(([nombre, etiqueta]) => (
+                <option key={nombre} value={nombre}>{etiqueta}</option>
+              ))}
+            </select>
+          </div>
+
+          <div style={{ gridColumn: '1 / -1' }}>
+            <label style={labelStyle}>Capítulo</label>
+            <select
+              style={inputStyle}
+              value={capituloSel}
+              disabled={!funcionSel}
+              onChange={(e) => {
+                setCapituloSel(e.target.value);
+                setForm({ ...form, partida_id: '' });
+              }}
+            >
+              <option value="">{funcionSel ? 'Selecciona un capítulo...' : 'Primero elige una función'}</option>
+              {capitulos.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+
+          <div style={{ gridColumn: '1 / -1' }}>
+            <label style={labelStyle}>Partida</label>
+            <select
+              style={inputStyle}
+              value={form.partida_id}
+              disabled={!capituloSel}
+              onChange={(e) => setForm({ ...form, partida_id: e.target.value })}
+            >
+              <option value="">{capituloSel ? 'Selecciona una partida...' : 'Primero elige un capítulo'}</option>
+              {partidasFiltradas.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.funcion_nombre.slice(0, 40)} · {p.capitulo_clave} · {p.partida_clave} - {p.partida_descripcion.slice(0, 40)}
+                  {p.partida_clave} - {p.partida_descripcion}
                 </option>
               ))}
             </select>
