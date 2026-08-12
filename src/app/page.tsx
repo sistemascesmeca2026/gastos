@@ -388,7 +388,13 @@ export default function Home() {
 
           <div>
             <label style={labelStyle}>Fecha</label>
-            <input type="date" style={inputStyle} value={form.fecha} onChange={(e) => setForm({ ...form, fecha: e.target.value })} />
+            <input
+              type="date"
+              style={inputStyle}
+              value={form.fecha}
+              onChange={(e) => setForm({ ...form, fecha: e.target.value })}
+              onClick={(e) => (e.currentTarget as HTMLInputElement).showPicker?.()}
+            />
           </div>
 
           <div>
