@@ -5,6 +5,7 @@ import ExcelJS from 'exceljs';
 const TIPO_LABELS: Record<string, string> = {
   solicitud_recursos: 'Solicitud de recursos',
   comprobacion_viaticos: 'Comprobación de viáticos',
+  comprobacion_gasto: 'Comprobación de gasto',
   reembolso: 'Reembolso',
   retiro_institucional: 'Retiro institucional',
   transferencia_entrada: 'Transferencia (entrada)',

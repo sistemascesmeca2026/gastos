@@ -53,6 +53,7 @@ type Saldo = {
 const TIPOS = [
   { value: 'solicitud_recursos', label: 'Solicitud de recursos', color: 'bg-blue-500/15 text-blue-300 border-blue-500/30' },
   { value: 'comprobacion_viaticos', label: 'Comprobación de viáticos', color: 'bg-amber-500/15 text-amber-300 border-amber-500/30' },
+  { value: 'comprobacion_gasto', label: 'Comprobación de gasto', color: 'bg-orange-500/15 text-orange-300 border-orange-500/30' },
   { value: 'reembolso', label: 'Reembolso', color: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' },
   { value: 'retiro_institucional', label: 'Retiro institucional', color: 'bg-rose-500/15 text-rose-300 border-rose-500/30' },
   { value: 'transferencia_entrada', label: 'Transferencia (entrada)', color: 'bg-violet-500/15 text-violet-300 border-violet-500/30' },
