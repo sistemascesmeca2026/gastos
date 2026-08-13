@@ -119,6 +119,8 @@ export default function Home() {
   const [error, setError] = useState('');
   const [ok, setOk] = useState('');
   const [abiertas, setAbiertas] = useState<Record<string, boolean>>({});
+  const [editandoId, setEditandoId] = useState<number | null>(null);
+  const [editValor, setEditValor] = useState('');
 
   const [form, setForm] = useState({
     partida_id: '',
@@ -209,6 +211,23 @@ export default function Home() {
 
   const toggle = (funcion: string) => setAbiertas((prev) => ({ ...prev, [funcion]: !prev[funcion] }));
 
+  const guardarEdicion = async (partidaId: number) => {
+    if (editValor === '' || isNaN(Number(editValor))) return;
+    try {
+      const res = await fetch(`/api/linea-base/${partidaId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ministrado: editValor }),
+      });
+      if (res.ok) {
+        setEditandoId(null);
+        cargarTodo();
+      }
+    } catch {
+      // silencioso: si falla, el usuario puede reintentar
+    }
+  };
+
   return (
     <div className="min-h-screen">
       <header className="border-b border-[var(--border)] bg-[var(--surface)]/60 backdrop-blur sticky top-0 z-10">
@@ -296,7 +315,8 @@ export default function Home() {
                                 <th className="py-1.5 pr-3 font-medium text-right">Ministrado</th>
                                 <th className="py-1.5 pr-3 font-medium text-right">Ejercido</th>
                                 <th className="py-1.5 pr-3 font-medium text-right">Comprometido</th>
-                                <th className="py-1.5 font-medium text-right">Por ejercer</th>
+                                <th className="py-1.5 pr-3 font-medium text-right">Por ejercer</th>
+                                <th className="py-1.5 font-medium text-right w-8"></th>
                               </tr>
                             </thead>
                             <tbody>
@@ -304,11 +324,41 @@ export default function Home() {
                                 <tr key={p.partida_id} className="border-b border-[var(--border)]/60 hover:bg-[var(--surface-2)]/40">
                                   <td className="py-1.5 pr-3 text-[var(--text-muted)]">{p.clave}</td>
                                   <td className="py-1.5 pr-3">{p.descripcion}</td>
-                                  <td className="py-1.5 pr-3 text-right">${money(p.ministrado)}</td>
+                                  <td className="py-1.5 pr-3 text-right">
+                                    {editandoId === p.partida_id ? (
+                                      <input
+                                        autoFocus
+                                        type="number"
+                                        step="0.01"
+                                        value={editValor}
+                                        onChange={(e) => setEditValor(e.target.value)}
+                                        onKeyDown={(e) => { if (e.key === 'Enter') guardarEdicion(p.partida_id); if (e.key === 'Escape') setEditandoId(null); }}
+                                        className="w-24 rounded border border-[var(--accent)] bg-[var(--surface-2)] px-1.5 py-0.5 text-right text-xs text-[var(--text)] focus:outline-none"
+                                      />
+                                    ) : (
+                                      `$${money(p.ministrado)}`
+                                    )}
+                                  </td>
                                   <td className="py-1.5 pr-3 text-right">${money(p.ejercido)}</td>
                                   <td className="py-1.5 pr-3 text-right">${money(p.comprometido)}</td>
-                                  <td className={`py-1.5 text-right font-medium ${Number(p.por_ejercer) < 0 ? 'text-rose-400' : ''}`}>
+                                  <td className={`py-1.5 pr-3 text-right font-medium ${Number(p.por_ejercer) < 0 ? 'text-rose-400' : ''}`}>
                                     ${money(p.por_ejercer)}
+                                  </td>
+                                  <td className="py-1.5 text-right">
+                                    {editandoId === p.partida_id ? (
+                                      <div className="flex gap-1 justify-end">
+                                        <button onClick={() => guardarEdicion(p.partida_id)} className="text-emerald-400 hover:text-emerald-300 text-xs" title="Guardar">✓</button>
+                                        <button onClick={() => setEditandoId(null)} className="text-[var(--text-muted)] hover:text-[var(--text)] text-xs" title="Cancelar">✕</button>
+                                      </div>
+                                    ) : (
+                                      <button
+                                        onClick={() => { setEditandoId(p.partida_id); setEditValor(p.ministrado); }}
+                                        className="text-[var(--text-muted)] hover:text-[var(--accent)] text-xs"
+                                        title="Editar Ministrado"
+                                      >
+                                        ✎
+                                      </button>
+                                    )}
                                   </td>
                                 </tr>
                               ))}
