@@ -3,7 +3,7 @@ import { verificarSesion, COOKIE_NAME } from '@/lib/session';
 
 const RUTAS_PUBLICAS = ['/login', '/api/auth/login'];
 
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   if (RUTAS_PUBLICAS.some((r) => pathname.startsWith(r)) || pathname.startsWith('/_next') || pathname.startsWith('/favicon')) {
@@ -11,7 +11,7 @@ export function middleware(req: NextRequest) {
   }
 
   const token = req.cookies.get(COOKIE_NAME)?.value;
-  const sesion = verificarSesion(token);
+  const sesion = await verificarSesion(token);
 
   if (!sesion) {
     if (pathname.startsWith('/api')) {

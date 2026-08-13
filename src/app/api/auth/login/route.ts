@@ -25,7 +25,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Usuario o contraseña incorrectos' }, { status: 401 });
     }
 
-    const token = crearSesion(usuario.id, usuario.username);
+    const token = await crearSesion(usuario.id, usuario.username);
     const res = NextResponse.json({ ok: true, nombre: usuario.nombre, username: usuario.username });
     res.cookies.set(COOKIE_NAME, token, {
       httpOnly: true,

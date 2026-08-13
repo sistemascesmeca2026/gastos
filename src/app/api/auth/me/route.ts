@@ -5,7 +5,7 @@ import pool from '@/lib/db';
 
 export async function GET() {
   const cookieStore = await cookies();
-  const sesion = verificarSesion(cookieStore.get(COOKIE_NAME)?.value);
+  const sesion = await verificarSesion(cookieStore.get(COOKIE_NAME)?.value);
   if (!sesion) return NextResponse.json({ user: null });
 
   const result = await pool.query(`SELECT nombre, username FROM usuarios WHERE id = $1`, [sesion.userId]);
