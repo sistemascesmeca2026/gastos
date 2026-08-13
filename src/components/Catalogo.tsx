@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
-type Funcion = { id: number; clave: string; nombre: string };
+type Funcion = { id: number; clave: string; nombre: string; ejercicio: number };
 type Capitulo = { id: number; clave: string; nombre: string; funcion_id: number; funcion_clave: string; funcion_nombre: string };
 
 const inputCls =
@@ -11,7 +11,7 @@ const labelCls = 'block text-xs text-[var(--text-muted)] mb-1.5';
 const cardCls = 'rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 space-y-3';
 const btnCls = 'rounded-lg bg-[var(--accent)] hover:bg-blue-500 disabled:opacity-50 transition px-4 py-2 text-sm font-medium text-white';
 
-export default function Catalogo() {
+export default function Catalogo({ ejercicioSel }: { ejercicioSel: number }) {
   const [funciones, setFunciones] = useState<Funcion[]>([]);
   const [capitulos, setCapitulos] = useState<Capitulo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -20,7 +20,9 @@ export default function Catalogo() {
 
   const [fClave, setFClave] = useState('');
   const [fNombre, setFNombre] = useState('');
+  const [fEjercicio, setFEjercicio] = useState(ejercicioSel);
   const [savingF, setSavingF] = useState(false);
+
 
   const [cFuncionId, setCFuncionId] = useState('');
   const [cClave, setCClave] = useState('');
@@ -61,7 +63,7 @@ export default function Catalogo() {
       const res = await fetch('/api/funciones', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clave: fClave, nombre: fNombre }),
+        body: JSON.stringify({ clave: fClave, nombre: fNombre, ejercicio: fEjercicio }),
       });
       const data = await res.json();
       if (!res.ok) return flash(data.error || 'Error al crear la función', false);
@@ -129,6 +131,10 @@ export default function Catalogo() {
       <form onSubmit={crearFuncion} className={cardCls}>
         <h3 className="text-sm font-semibold">Nueva función / programa</h3>
         <div>
+          <label className={labelCls}>Ejercicio (año)</label>
+          <input type="number" className={inputCls} value={fEjercicio} onChange={(e) => setFEjercicio(Number(e.target.value))} />
+        </div>
+        <div>
           <label className={labelCls}>Clave (ej. 2.06.PRDI999.PYI099)</label>
           <input className={inputCls} value={fClave} onChange={(e) => setFClave(e.target.value)} placeholder="2.06.PRDI999.PYI099" />
         </div>
@@ -145,7 +151,7 @@ export default function Catalogo() {
           <label className={labelCls}>Función</label>
           <select className={inputCls} value={cFuncionId} onChange={(e) => setCFuncionId(e.target.value)}>
             <option value="">Selecciona una función...</option>
-            {funciones.map((f) => <option key={f.id} value={f.id}>{f.clave} {f.nombre}</option>)}
+            {funciones.map((f) => <option key={f.id} value={f.id}>[{f.ejercicio}] {f.clave} {f.nombre}</option>)}
           </select>
         </div>
         <div>
@@ -165,7 +171,7 @@ export default function Catalogo() {
           <label className={labelCls}>Función</label>
           <select className={inputCls} value={pFuncionId} onChange={(e) => { setPFuncionId(e.target.value); setPCapituloId(''); }}>
             <option value="">Selecciona una función...</option>
-            {funciones.map((f) => <option key={f.id} value={f.id}>{f.clave} {f.nombre}</option>)}
+            {funciones.map((f) => <option key={f.id} value={f.id}>[{f.ejercicio}] {f.clave} {f.nombre}</option>)}
           </select>
         </div>
         <div>

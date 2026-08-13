@@ -3,9 +3,12 @@ import { cookies } from 'next/headers';
 import pool from '@/lib/db';
 import { verificarSesion, COOKIE_NAME } from '@/lib/session';
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    const result = await pool.query(`
+    const { searchParams } = new URL(req.url);
+    const ejercicio = searchParams.get('ejercicio');
+
+    const base = `
       SELECT
         m.id,
         m.folio_oficio,
@@ -17,6 +20,7 @@ export async function GET() {
         p.clave AS partida_clave,
         p.descripcion AS partida_descripcion,
         f.nombre AS funcion_nombre,
+        f.ejercicio,
         cu.nombre AS creado_por_nombre,
         au.nombre AS actualizado_por_nombre
       FROM movimientos m
@@ -25,9 +29,12 @@ export async function GET() {
       JOIN funciones f ON f.id = c.funcion_id
       LEFT JOIN usuarios cu ON cu.id = m.creado_por_id
       LEFT JOIN usuarios au ON au.id = m.actualizado_por_id
-      ORDER BY m.fecha DESC, m.id DESC
-      LIMIT 200
-    `);
+    `;
+
+    const result = ejercicio
+      ? await pool.query(`${base} WHERE f.ejercicio = $1 ORDER BY m.fecha DESC, m.id DESC LIMIT 500`, [ejercicio])
+      : await pool.query(`${base} ORDER BY m.fecha DESC, m.id DESC LIMIT 200`);
+
     return NextResponse.json(result.rows);
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });

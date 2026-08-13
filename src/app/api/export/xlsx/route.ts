@@ -11,20 +11,28 @@ const TIPO_LABELS: Record<string, string> = {
   transferencia_salida: 'Transferencia (salida)',
 };
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    const saldos = await pool.query(`
-      SELECT partida_id, clave, descripcion, capitulo_clave, capitulo_nombre, funcion_nombre,
-             ministrado, retirado, neto, ejercido, comprometido, por_ejercer
-      FROM v_saldo_partida
-      ORDER BY funcion_nombre, capitulo_clave, clave
-    `);
+    const { searchParams } = new URL(req.url);
+    const ejercicio = searchParams.get('ejercicio') || String(new Date().getFullYear());
+
+    const saldos = await pool.query(
+      `SELECT partida_id, clave, descripcion, capitulo_clave, capitulo_nombre, funcion_nombre,
+              ministrado, retirado, neto, ejercido, comprometido, por_ejercer
+       FROM v_saldo_partida WHERE ejercicio = $1
+       ORDER BY funcion_nombre, capitulo_clave, clave`,
+      [ejercicio]
+    );
 
     const movimientos = await pool.query(`
-      SELECT partida_id, tipo_tramite, monto, concepto, folio_oficio, fecha
-      FROM movimientos
+      SELECT m.partida_id, m.tipo_tramite, m.monto, m.concepto, m.folio_oficio, m.fecha
+      FROM movimientos m
+      JOIN partidas p ON p.id = m.partida_id
+      JOIN capitulos c ON c.id = p.capitulo_id
+      JOIN funciones f ON f.id = c.funcion_id
+      WHERE f.ejercicio = $1
       ORDER BY fecha
-    `);
+    `, [ejercicio]);
 
     // Agrupar observaciones (conceptos) por partida
     const obsPorPartida: Record<number, string[]> = {};

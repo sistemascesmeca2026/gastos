@@ -42,7 +42,7 @@ function money(v: string | number) {
   return Number(v).toLocaleString('es-MX', { minimumFractionDigits: 2 });
 }
 
-export default function Dashboard() {
+export default function Dashboard({ ejercicio }: { ejercicio: number }) {
   const [data, setData] = useState<DashboardData | null>(null);
   const [sobregiradas, setSobregiradas] = useState<SaldoPartida[]>([]);
   const [temaVersion, setTemaVersion] = useState(0);
@@ -52,17 +52,17 @@ export default function Dashboard() {
   const chartsRef = useRef<Chart[]>([]);
 
   useEffect(() => {
-    fetch('/api/dashboard')
+    fetch(`/api/dashboard?ejercicio=${ejercicio}`)
       .then((r) => r.json())
       .then(setData);
-    fetch('/api/saldos')
+    fetch(`/api/saldos?ejercicio=${ejercicio}`)
       .then((r) => r.json())
       .then((saldos: SaldoPartida[]) => setSobregiradas(saldos.filter((s) => Number(s.por_ejercer) < 0)));
 
     const onThemeChange = () => setTemaVersion((v) => v + 1);
     window.addEventListener('themechange', onThemeChange);
     return () => window.removeEventListener('themechange', onThemeChange);
-  }, []);
+  }, [ejercicio]);
 
   useEffect(() => {
     if (!data) return;

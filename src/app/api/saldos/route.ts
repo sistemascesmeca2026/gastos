@@ -1,25 +1,22 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    const result = await pool.query(`
+    const { searchParams } = new URL(req.url);
+    const ejercicio = searchParams.get('ejercicio');
+
+    const base = `
       SELECT
-        partida_id,
-        clave,
-        descripcion,
-        capitulo_clave,
-        capitulo_nombre,
-        funcion_nombre,
-        ministrado,
-        retirado,
-        neto,
-        ejercido,
-        comprometido,
-        por_ejercer
+        partida_id, clave, descripcion, capitulo_clave, capitulo_nombre, funcion_nombre, ejercicio,
+        ministrado, retirado, neto, ejercido, comprometido, por_ejercer
       FROM v_saldo_partida
-      ORDER BY funcion_nombre, capitulo_clave, clave
-    `);
+    `;
+
+    const result = ejercicio
+      ? await pool.query(`${base} WHERE ejercicio = $1 ORDER BY funcion_nombre, capitulo_clave, clave`, [ejercicio])
+      : await pool.query(`${base} ORDER BY ejercicio DESC, funcion_nombre, capitulo_clave, clave`);
+
     return NextResponse.json(result.rows);
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });

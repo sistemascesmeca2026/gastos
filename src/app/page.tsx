@@ -161,11 +161,18 @@ export default function Home() {
     (p) => p.funcion_nombre === funcionSel && `${p.capitulo_clave} · ${p.capitulo_nombre}` === capituloSel
   );
 
+  const [ejercicioSel, setEjercicioSel] = useState<number>(new Date().getFullYear());
+  const [ejerciciosDisponibles, setEjerciciosDisponibles] = useState<number[]>([]);
+
+  useEffect(() => {
+    fetch('/api/ejercicios').then((r) => r.json()).then(setEjerciciosDisponibles);
+  }, []);
+
   const cargarTodo = () => {
     return Promise.all([
-      fetch('/api/partidas').then((r) => r.json()),
-      fetch('/api/movimientos').then((r) => r.json()),
-      fetch('/api/saldos').then((r) => r.json()),
+      fetch(`/api/partidas?ejercicio=${ejercicioSel}`).then((r) => r.json()),
+      fetch(`/api/movimientos?ejercicio=${ejercicioSel}`).then((r) => r.json()),
+      fetch(`/api/saldos?ejercicio=${ejercicioSel}`).then((r) => r.json()),
     ]).then(([p, m, s]) => {
       setPartidas(p);
       setMovimientos(m);
@@ -187,8 +194,9 @@ export default function Home() {
   const [mostrarCambiarPassword, setMostrarCambiarPassword] = useState(false);
 
   useEffect(() => {
+    setLoading(true);
     cargarTodo().finally(() => setLoading(false));
-  }, []);
+  }, [ejercicioSel]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -304,9 +312,19 @@ export default function Home() {
           <div className="flex items-start justify-between gap-3">
             <div>
               <h1 className="text-lg sm:text-xl font-semibold tracking-tight">CESMECA — Control presupuestal POA</h1>
-              <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-0.5">Línea base marzo 2026 · captura de oficios enero–julio</p>
+              <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-0.5">Ejercicio fiscal {ejercicioSel}</p>
             </div>
             <div className="flex items-center gap-2 text-xs text-[var(--text-muted)] whitespace-nowrap pt-1">
+              <select
+                value={ejercicioSel}
+                onChange={(e) => setEjercicioSel(Number(e.target.value))}
+                className="text-xs bg-[var(--surface-2)] border border-[var(--border)] rounded px-2 py-1 text-[var(--text)]"
+                title="Ejercicio fiscal"
+              >
+                {ejerciciosDisponibles.map((a) => (
+                  <option key={a} value={a}>{a}</option>
+                ))}
+              </select>
               <ThemeToggle />
               {usuario && (
                 <>
@@ -349,20 +367,20 @@ export default function Home() {
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
         {loading && <p className="text-[var(--text-muted)] text-sm">Cargando...</p>}
 
-        {!loading && tab === 'dashboard' && <Dashboard />}
-        {!loading && tab === 'catalogo' && <Catalogo />}
+        {!loading && tab === 'dashboard' && <Dashboard ejercicio={ejercicioSel} />}
+        {!loading && tab === 'catalogo' && <Catalogo ejercicioSel={ejercicioSel} />}
 
         {!loading && tab === 'presupuesto' && (
           <>
             <div className="flex gap-2 mb-5 flex-wrap">
               <a
-                href="/api/export/xlsx"
+                href={`/api/export/xlsx?ejercicio=${ejercicioSel}`}
                 className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 transition px-3.5 py-2 text-sm font-medium text-white"
               >
                 ⬇ Descargar Excel
               </a>
               <a
-                href="/imprimir"
+                href={`/imprimir?ejercicio=${ejercicioSel}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--accent)] hover:bg-blue-500 transition px-3.5 py-2 text-sm font-medium text-white"

@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 type Saldo = {
   partida_id: number;
@@ -28,16 +29,18 @@ function agruparPorFuncion(saldos: Saldo[]) {
   return grupos;
 }
 
-export default function ImprimirPage() {
+function ImprimirContenido() {
+  const searchParams = useSearchParams();
+  const ejercicio = searchParams.get('ejercicio') || String(new Date().getFullYear());
   const [saldos, setSaldos] = useState<Saldo[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/saldos')
+    fetch(`/api/saldos?ejercicio=${ejercicio}`)
       .then((r) => r.json())
       .then(setSaldos)
       .finally(() => setLoading(false));
-  }, []);
+  }, [ejercicio]);
 
   if (loading) return <p style={{ padding: 20 }}>Cargando...</p>;
 
@@ -113,5 +116,13 @@ export default function ImprimirPage() {
         }
       `}</style>
     </div>
+  );
+}
+
+export default function ImprimirPage() {
+  return (
+    <Suspense fallback={<p style={{ padding: 20 }}>Cargando...</p>}>
+      <ImprimirContenido />
+    </Suspense>
   );
 }
