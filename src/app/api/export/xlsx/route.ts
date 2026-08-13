@@ -38,9 +38,7 @@ export async function GET(req: Request) {
     // Agrupar observaciones (conceptos) por partida
     const obsPorPartida: Record<number, string[]> = {};
     for (const m of movimientos.rows) {
-      const tipo = TIPO_LABELS[m.tipo_tramite] || m.tipo_tramite;
-      const folio = m.folio_oficio ? ` (${m.folio_oficio})` : '';
-      const linea = `${tipo}${folio}: ${m.concepto} — $${Number(m.monto).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`;
+      const linea = `${m.concepto} — $${Number(m.monto).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`;
       if (!obsPorPartida[m.partida_id]) obsPorPartida[m.partida_id] = [];
       obsPorPartida[m.partida_id].push(linea);
     }
