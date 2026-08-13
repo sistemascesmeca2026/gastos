@@ -169,6 +169,17 @@ export default function Home() {
     });
   };
 
+  const [usuario, setUsuario] = useState<{ nombre: string; username: string } | null>(null);
+
+  useEffect(() => {
+    fetch('/api/auth/me').then((r) => r.json()).then((d) => setUsuario(d.user));
+  }, []);
+
+  const cerrarSesion = async () => {
+    await fetch('/api/auth/logout', { method: 'POST' });
+    window.location.href = '/login';
+  };
+
   useEffect(() => {
     cargarTodo().finally(() => setLoading(false));
   }, []);
@@ -284,8 +295,23 @@ export default function Home() {
     <div className="min-h-screen">
       <header className="border-b border-[var(--border)] bg-[var(--surface)]/60 backdrop-blur sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-5">
-          <h1 className="text-lg sm:text-xl font-semibold tracking-tight">CESMECA — Control presupuestal POA</h1>
-          <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-0.5">Línea base marzo 2026 · captura de oficios enero–julio</p>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h1 className="text-lg sm:text-xl font-semibold tracking-tight">CESMECA — Control presupuestal POA</h1>
+              <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-0.5">Línea base marzo 2026 · captura de oficios enero–julio</p>
+            </div>
+            {usuario && (
+              <div className="flex items-center gap-2 text-xs text-[var(--text-muted)] whitespace-nowrap pt-1">
+                <span>{usuario.nombre}</span>
+                <button
+                  onClick={cerrarSesion}
+                  className="text-[var(--text-muted)] hover:text-rose-400 border border-[var(--border)] rounded px-2 py-1"
+                >
+                  Salir
+                </button>
+              </div>
+            )}
+          </div>
 
           <nav className="flex gap-1 mt-4 -mb-px overflow-x-auto">
             {TABS.map((t) => (
