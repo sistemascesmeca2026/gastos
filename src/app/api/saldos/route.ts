@@ -11,12 +11,18 @@ export async function GET() {
         capitulo_clave,
         capitulo_nombre,
         funcion_nombre,
+        original,
+        modificado,
         ministrado,
-        retirado,
-        neto,
-        ejercido,
+        pre_compromiso,
         comprometido,
-        por_ejercer
+        devengado,
+        ejercido,
+        pagado,
+        por_ejercer,
+        disponible,
+        retirado,
+        neto
       FROM v_saldo_partida
       ORDER BY funcion_nombre, capitulo_clave, clave
     `);
