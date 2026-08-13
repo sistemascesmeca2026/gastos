@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import pool from '@/lib/db';
+import { verificarSesion, COOKIE_NAME } from '@/lib/session';
 
 export async function GET() {
   try {
@@ -14,11 +16,15 @@ export async function GET() {
         m.concepto,
         p.clave AS partida_clave,
         p.descripcion AS partida_descripcion,
-        f.nombre AS funcion_nombre
+        f.nombre AS funcion_nombre,
+        cu.nombre AS creado_por_nombre,
+        au.nombre AS actualizado_por_nombre
       FROM movimientos m
       JOIN partidas p ON p.id = m.partida_id
       JOIN capitulos c ON c.id = p.capitulo_id
       JOIN funciones f ON f.id = c.funcion_id
+      LEFT JOIN usuarios cu ON cu.id = m.creado_por_id
+      LEFT JOIN usuarios au ON au.id = m.actualizado_por_id
       ORDER BY m.fecha DESC, m.id DESC
       LIMIT 200
     `);
@@ -30,18 +36,11 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    const cookieStore = await cookies();
+    const sesion = await verificarSesion(cookieStore.get(COOKIE_NAME)?.value);
+
     const body = await req.json();
-    const {
-      partida_id,
-      folio_oficio,
-      fecha,
-      tipo_tramite,
-      estado,
-      monto,
-      concepto,
-      observaciones,
-      capturado_por,
-    } = body;
+    const { partida_id, folio_oficio, fecha, tipo_tramite, estado, monto, concepto, observaciones } = body;
 
     if (!partida_id || !fecha || !tipo_tramite || !monto || !concepto) {
       return NextResponse.json(
@@ -52,8 +51,8 @@ export async function POST(req: Request) {
 
     const result = await pool.query(
       `INSERT INTO movimientos
-        (partida_id, folio_oficio, fecha, tipo_tramite, estado, monto, concepto, observaciones, capturado_por)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+        (partida_id, folio_oficio, fecha, tipo_tramite, estado, monto, concepto, observaciones, creado_por_id, actualizado_por_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$9)
        RETURNING id`,
       [
         partida_id,
@@ -64,7 +63,7 @@ export async function POST(req: Request) {
         monto,
         concepto,
         observaciones || null,
-        capturado_por || null,
+        sesion?.userId || null,
       ]
     );
 

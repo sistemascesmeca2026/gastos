@@ -1,8 +1,13 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import pool from '@/lib/db';
+import { verificarSesion, COOKIE_NAME } from '@/lib/session';
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const cookieStore = await cookies();
+    const sesion = await verificarSesion(cookieStore.get(COOKIE_NAME)?.value);
+
     const { id } = await params;
     const body = await req.json();
     const { partida_id, folio_oficio, fecha, tipo_tramite, estado, monto, concepto, observaciones } = body;
@@ -14,9 +19,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     await pool.query(
       `UPDATE movimientos
        SET partida_id = $1, folio_oficio = $2, fecha = $3, tipo_tramite = $4,
-           estado = $5, monto = $6, concepto = $7, observaciones = $8, actualizado_en = now()
-       WHERE id = $9`,
-      [partida_id, folio_oficio || null, fecha, tipo_tramite, estado || 'solicitado', monto, concepto, observaciones || null, id]
+           estado = $5, monto = $6, concepto = $7, observaciones = $8, actualizado_en = now(), actualizado_por_id = $9
+       WHERE id = $10`,
+      [partida_id, folio_oficio || null, fecha, tipo_tramite, estado || 'solicitado', monto, concepto, observaciones || null, sesion?.userId || null, id]
     );
 
     return NextResponse.json({ ok: true });

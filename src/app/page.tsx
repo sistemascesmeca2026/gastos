@@ -26,6 +26,8 @@ type Movimiento = {
   partida_clave: string;
   partida_descripcion: string;
   funcion_nombre: string;
+  creado_por_nombre: string | null;
+  actualizado_por_nombre: string | null;
 };
 
 type Saldo = {
@@ -641,6 +643,7 @@ export default function Home() {
                     <th className="py-2.5 px-4 font-medium">Estado</th>
                     <th className="py-2.5 px-4 font-medium text-right">Monto</th>
                     <th className="py-2.5 px-4 font-medium">Concepto</th>
+                    <th className="py-2.5 px-4 font-medium">Capturado por</th>
                     <th className="py-2.5 px-4 font-medium text-right">Acciones</th>
                   </tr>
                 </thead>
@@ -657,6 +660,12 @@ export default function Home() {
                         <td className="py-2.5 px-4">{estadoInfo && <Badge label={estadoInfo.label} color={estadoInfo.color} />}</td>
                         <td className="py-2.5 px-4 text-right font-medium">${money(m.monto)}</td>
                         <td className="py-2.5 px-4 text-[var(--text-muted)]">{m.concepto}</td>
+                        <td className="py-2.5 px-4 text-[var(--text-muted)] whitespace-nowrap text-xs">
+                          {m.creado_por_nombre || '—'}
+                          {m.actualizado_por_nombre && m.actualizado_por_nombre !== m.creado_por_nombre && (
+                            <span className="block text-[10px] opacity-70">editó: {m.actualizado_por_nombre}</span>
+                          )}
+                        </td>
                         <td className="py-2.5 px-4 text-right whitespace-nowrap">
                           <button onClick={() => iniciarEdicionMovimiento(m)} className="text-[var(--text-muted)] hover:text-[var(--accent)] text-xs mr-2" title="Editar">✎</button>
                           <button onClick={() => eliminarMovimiento(m.id)} className="text-[var(--text-muted)] hover:text-rose-400 text-xs" title="Eliminar">🗑</button>
