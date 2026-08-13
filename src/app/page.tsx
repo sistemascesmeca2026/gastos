@@ -241,6 +241,23 @@ export default function Home() {
 
       {!loading && tab === 'presupuesto' && (
         <>
+          <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
+            <a
+              href="/api/export/xlsx"
+              style={{ padding: '8px 16px', borderRadius: 6, background: '#1baf7a', color: '#fff', fontSize: 13, fontWeight: 500, textDecoration: 'none' }}
+            >
+              Descargar Excel
+            </a>
+            <a
+              href="/imprimir"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ padding: '8px 16px', borderRadius: 6, background: '#2a78d6', color: '#fff', fontSize: 13, fontWeight: 500, textDecoration: 'none' }}
+            >
+              Imprimir / Guardar PDF
+            </a>
+          </div>
+
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 24 }}>
             <div style={{ background: '#1a1a1a', borderRadius: 8, padding: 16 }}>
               <p style={{ fontSize: 12, color: '#999', margin: '0 0 4px' }}>Ministrado</p>
