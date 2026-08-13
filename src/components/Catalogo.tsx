@@ -184,6 +184,13 @@ export default function Catalogo({ ejercicioSel }: { ejercicioSel: number }) {
   };
 
   const funcionesEjercicio = funciones.filter((f) => f.ejercicio === ejercicioSel);
+  const [abierto, setAbierto] = useState<{ funciones: boolean; capitulos: boolean; partidas: boolean }>({ funciones: false, capitulos: false, partidas: false });
+  const [busquedaPartida, setBusquedaPartida] = useState('');
+  const partidasFiltradas = partidas.filter((p) => {
+    if (!busquedaPartida) return true;
+    const q = busquedaPartida.toLowerCase();
+    return `${p.partida_clave} ${p.partida_descripcion} ${p.funcion_nombre}`.toLowerCase().includes(q);
+  });
 
   if (loading) return <p className="text-[var(--text-muted)] text-sm">Cargando catálogo...</p>;
 
@@ -261,9 +268,19 @@ export default function Catalogo({ ejercicioSel }: { ejercicioSel: number }) {
         <button type="submit" disabled={savingP || !pCapituloId} className={btnCls}>{savingP ? 'Guardando...' : 'Crear partida'}</button>
       </form>
 
-      <div className={cardCls}>
-        <h3 className="text-sm font-semibold">Funciones existentes ({ejercicioSel})</h3>
-        <div className="space-y-1.5">
+      <div className={cardCls.replace('space-y-3', '')}>
+        <button
+          onClick={() => setAbierto((v) => ({ ...v, funciones: !v.funciones }))}
+          className="w-full flex items-center justify-between text-left"
+        >
+          <h3 className="text-sm font-semibold flex items-center gap-2">
+            <span className={`text-[var(--text-muted)] text-xs transition-transform ${abierto.funciones ? 'rotate-90' : ''}`}>▸</span>
+            Funciones existentes ({ejercicioSel})
+          </h3>
+          <span className="text-xs text-[var(--text-muted)]">{funcionesEjercicio.length}</span>
+        </button>
+        {abierto.funciones && (
+        <div className="space-y-1.5 mt-3">
           {funcionesEjercicio.map((f) => (
             <div key={f.id} className="flex items-center gap-2 text-xs border-b border-[var(--border)] pb-1.5">
               {editFuncionId === f.id ? (
@@ -284,11 +301,22 @@ export default function Catalogo({ ejercicioSel }: { ejercicioSel: number }) {
           ))}
           {funcionesEjercicio.length === 0 && <p className="text-xs text-[var(--text-muted)]">Sin funciones en este ejercicio.</p>}
         </div>
+        )}
       </div>
 
-      <div className={cardCls}>
-        <h3 className="text-sm font-semibold">Capítulos existentes</h3>
-        <div className="space-y-1.5">
+      <div className={cardCls.replace('space-y-3', '')}>
+        <button
+          onClick={() => setAbierto((v) => ({ ...v, capitulos: !v.capitulos }))}
+          className="w-full flex items-center justify-between text-left"
+        >
+          <h3 className="text-sm font-semibold flex items-center gap-2">
+            <span className={`text-[var(--text-muted)] text-xs transition-transform ${abierto.capitulos ? 'rotate-90' : ''}`}>▸</span>
+            Capítulos existentes
+          </h3>
+          <span className="text-xs text-[var(--text-muted)]">{capitulos.filter((c) => funcionesEjercicio.some((f) => f.id === c.funcion_id)).length}</span>
+        </button>
+        {abierto.capitulos && (
+        <div className="space-y-1.5 mt-3">
           {capitulos.filter((c) => funcionesEjercicio.some((f) => f.id === c.funcion_id)).map((c) => (
             <div key={c.id} className="flex items-center gap-2 text-xs border-b border-[var(--border)] pb-1.5">
               {editCapituloId === c.id ? (
@@ -308,12 +336,30 @@ export default function Catalogo({ ejercicioSel }: { ejercicioSel: number }) {
             </div>
           ))}
         </div>
+        )}
       </div>
 
-      <div className={cardCls}>
-        <h3 className="text-sm font-semibold">Partidas existentes ({ejercicioSel})</h3>
+      <div className={cardCls.replace('space-y-3', '')}>
+        <button
+          onClick={() => setAbierto((v) => ({ ...v, partidas: !v.partidas }))}
+          className="w-full flex items-center justify-between text-left"
+        >
+          <h3 className="text-sm font-semibold flex items-center gap-2">
+            <span className={`text-[var(--text-muted)] text-xs transition-transform ${abierto.partidas ? 'rotate-90' : ''}`}>▸</span>
+            Partidas existentes ({ejercicioSel})
+          </h3>
+          <span className="text-xs text-[var(--text-muted)]">{partidas.length}</span>
+        </button>
+        {abierto.partidas && (
+        <div className="mt-3">
+          <input
+            className={`${inputCls} mb-2`}
+            placeholder="Buscar por clave, descripción o función..."
+            value={busquedaPartida}
+            onChange={(e) => setBusquedaPartida(e.target.value)}
+          />
         <div className="space-y-1.5 max-h-96 overflow-y-auto">
-          {partidas.map((p) => (
+          {partidasFiltradas.map((p) => (
             <div key={p.id} className="flex items-center gap-2 text-xs border-b border-[var(--border)] pb-1.5">
               {editPartidaId === p.id ? (
                 <>
@@ -331,8 +377,10 @@ export default function Catalogo({ ejercicioSel }: { ejercicioSel: number }) {
               )}
             </div>
           ))}
-          {partidas.length === 0 && <p className="text-xs text-[var(--text-muted)]">Sin partidas en este ejercicio.</p>}
+          {partidasFiltradas.length === 0 && <p className="text-xs text-[var(--text-muted)]">Sin resultados.</p>}
         </div>
+        </div>
+        )}
       </div>
 
       {confirmarEliminar && (
