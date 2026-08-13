@@ -83,7 +83,7 @@ export default function Usuarios() {
   if (loading) return <p className="text-[var(--text-muted)] text-sm">Cargando usuarios...</p>;
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="space-y-6 max-w-[1200px]">
       {msg && <p className={`text-sm ${msg.ok ? 'text-emerald-400' : 'text-rose-400'}`}>{msg.text}</p>}
 
       <form onSubmit={crearUsuario} className={cardCls}>

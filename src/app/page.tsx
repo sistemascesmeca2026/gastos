@@ -515,7 +515,7 @@ export default function Home() {
         {!loading && tab === 'concentrado' && <Concentrado ejercicio={ejercicioSel} />}
 
         {!loading && tab === 'captura' && (
-          <form onSubmit={handleSubmit} className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 sm:p-6 space-y-4 max-w-3xl mx-auto">
+          <form onSubmit={handleSubmit} className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 sm:p-6 space-y-4 max-w-[1200px] mx-auto">
             {editandoMovId && (
               <div className="flex items-center justify-between rounded-lg bg-amber-500/10 border border-amber-500/30 px-3 py-2">
                 <span className="text-xs text-amber-300">Editando oficio existente</span>
