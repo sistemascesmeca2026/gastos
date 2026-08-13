@@ -3,8 +3,17 @@
 import { useEffect, useRef, useState } from 'react';
 import Chart from 'chart.js/auto';
 
-Chart.defaults.color = '#8b93a7';
-Chart.defaults.borderColor = '#262b38';
+function colorTexto(): string {
+  if (typeof document === 'undefined') return '#8b93a7';
+  const tema = document.documentElement.getAttribute('data-theme');
+  return tema === 'light' ? '#6b7280' : '#8b93a7';
+}
+
+function colorBorde(): string {
+  if (typeof document === 'undefined') return '#262b38';
+  const tema = document.documentElement.getAttribute('data-theme');
+  return tema === 'light' ? '#e2e4e9' : '#262b38';
+}
 
 type DashboardData = {
   porFuncion: { funcion_nombre: string; ministrado: string; ejercido: string; por_ejercer: string }[];
@@ -36,6 +45,7 @@ function money(v: string | number) {
 export default function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [sobregiradas, setSobregiradas] = useState<SaldoPartida[]>([]);
+  const [temaVersion, setTemaVersion] = useState(0);
   const funcRef = useRef<HTMLCanvasElement>(null);
   const tipoRef = useRef<HTMLCanvasElement>(null);
   const mesRef = useRef<HTMLCanvasElement>(null);
@@ -48,10 +58,17 @@ export default function Dashboard() {
     fetch('/api/saldos')
       .then((r) => r.json())
       .then((saldos: SaldoPartida[]) => setSobregiradas(saldos.filter((s) => Number(s.por_ejercer) < 0)));
+
+    const onThemeChange = () => setTemaVersion((v) => v + 1);
+    window.addEventListener('themechange', onThemeChange);
+    return () => window.removeEventListener('themechange', onThemeChange);
   }, []);
 
   useEffect(() => {
     if (!data) return;
+
+    Chart.defaults.color = colorTexto();
+    Chart.defaults.borderColor = colorBorde();
 
     chartsRef.current.forEach((c) => c.destroy());
     chartsRef.current = [];
@@ -110,7 +127,7 @@ export default function Dashboard() {
       chartsRef.current.forEach((c) => c.destroy());
       chartsRef.current = [];
     };
-  }, [data]);
+  }, [data, temaVersion]);
 
   if (!data) return <p className="text-[var(--text-muted)] text-sm">Cargando dashboard...</p>;
 

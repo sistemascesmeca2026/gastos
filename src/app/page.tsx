@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Dashboard from '@/components/Dashboard';
 import Catalogo from '@/components/Catalogo';
 import CambiarPassword from '@/components/CambiarPassword';
+import ThemeToggle from '@/components/ThemeToggle';
 
 type Partida = {
   id: number;
@@ -305,23 +306,26 @@ export default function Home() {
               <h1 className="text-lg sm:text-xl font-semibold tracking-tight">CESMECA — Control presupuestal POA</h1>
               <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-0.5">Línea base marzo 2026 · captura de oficios enero–julio</p>
             </div>
-            {usuario && (
-              <div className="flex items-center gap-2 text-xs text-[var(--text-muted)] whitespace-nowrap pt-1">
-                <span>{usuario.nombre}</span>
-                <button
-                  onClick={() => setMostrarCambiarPassword(true)}
-                  className="text-[var(--text-muted)] hover:text-[var(--accent)] border border-[var(--border)] rounded px-2 py-1"
-                >
-                  Contraseña
-                </button>
-                <button
-                  onClick={cerrarSesion}
-                  className="text-[var(--text-muted)] hover:text-rose-400 border border-[var(--border)] rounded px-2 py-1"
-                >
-                  Salir
-                </button>
-              </div>
-            )}
+            <div className="flex items-center gap-2 text-xs text-[var(--text-muted)] whitespace-nowrap pt-1">
+              <ThemeToggle />
+              {usuario && (
+                <>
+                  <span>{usuario.nombre}</span>
+                  <button
+                    onClick={() => setMostrarCambiarPassword(true)}
+                    className="text-[var(--text-muted)] hover:text-[var(--accent)] border border-[var(--border)] rounded px-2 py-1"
+                  >
+                    Contraseña
+                  </button>
+                  <button
+                    onClick={cerrarSesion}
+                    className="text-[var(--text-muted)] hover:text-rose-400 border border-[var(--border)] rounded px-2 py-1"
+                  >
+                    Salir
+                  </button>
+                </>
+              )}
+            </div>
           </div>
 
           <nav className="flex gap-1 mt-4 -mb-px overflow-x-auto">
