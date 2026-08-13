@@ -123,6 +123,23 @@ export default function Concentrado({ ejercicio }: { ejercicio: number }) {
 
   return (
     <div>
+      <div className="flex gap-2 mb-4 flex-wrap">
+        <a
+          href={`/api/export/xlsx-concentrado?ejercicio=${ejercicio}`}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 transition px-3.5 py-2 text-sm font-medium text-white"
+        >
+          ⬇ Descargar Excel
+        </a>
+        <a
+          href={`/imprimir-concentrado?ejercicio=${ejercicio}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--accent)] hover:bg-blue-500 transition px-3.5 py-2 text-sm font-medium text-white"
+        >
+          🖨 Imprimir / Guardar PDF
+        </a>
+      </div>
+
       <p className="text-xs text-[var(--text-muted)] mb-4">
         Réplica del formato oficial de Planeación. Los 7 campos base son editables; Comprometido, Ejercido y Por ejercer se calculan automáticamente de los oficios capturados.
         Captura el subtotal oficial del PDF por capítulo/función para comparar contra lo calculado (✅ coincide, ⚠️ no coincide).
