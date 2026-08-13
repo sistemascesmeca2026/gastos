@@ -195,7 +195,7 @@ export default function Catalogo({ ejercicioSel }: { ejercicioSel: number }) {
   if (loading) return <p className="text-[var(--text-muted)] text-sm">Cargando catálogo...</p>;
 
   return (
-    <div className="space-y-6 max-w-[1200px]">
+    <div className="space-y-6 max-w-[1200px] mx-auto">
       {msg && (
         <p className={`text-sm ${msg.ok ? 'text-emerald-400' : 'text-rose-400'}`}>{msg.text}</p>
       )}
