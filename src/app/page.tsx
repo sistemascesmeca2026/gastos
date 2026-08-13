@@ -127,7 +127,6 @@ export default function Home() {
     monto: '',
     concepto: '',
     observaciones: '',
-    capturado_por: '',
   });
 
   const [funcionSel, setFuncionSel] = useState('');
@@ -187,7 +186,7 @@ export default function Home() {
         setOk('Oficio capturado correctamente.');
         setForm({
           partida_id: '', folio_oficio: '', fecha: '', tipo_tramite: 'solicitud_recursos',
-          estado: 'solicitado', monto: '', concepto: '', observaciones: '', capturado_por: '',
+          estado: 'solicitado', monto: '', concepto: '', observaciones: '',
         });
         setFuncionSel('');
         setCapituloSel('');
@@ -396,10 +395,6 @@ export default function Home() {
               <div>
                 <label className={labelCls}>Monto (MXN)</label>
                 <input type="number" step="0.01" className={inputCls} value={form.monto} onChange={(e) => setForm({ ...form, monto: e.target.value })} placeholder="10000.00" />
-              </div>
-              <div>
-                <label className={labelCls}>Capturado por</label>
-                <input className={inputCls} value={form.capturado_por} onChange={(e) => setForm({ ...form, capturado_por: e.target.value })} placeholder="Tu nombre" />
               </div>
             </div>
 
