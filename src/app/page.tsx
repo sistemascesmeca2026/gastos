@@ -137,6 +137,12 @@ export default function Home() {
   const [capituloSel, setCapituloSel] = useState('');
   const [editandoMovId, setEditandoMovId] = useState<number | null>(null);
 
+  const [filtroFuncion, setFiltroFuncion] = useState('');
+  const [filtroTipo, setFiltroTipo] = useState('');
+  const [filtroDesde, setFiltroDesde] = useState('');
+  const [filtroHasta, setFiltroHasta] = useState('');
+  const [filtroTexto, setFiltroTexto] = useState('');
+
   const funciones = Array.from(
     new Map(partidas.map((p) => [p.funcion_nombre, `${p.funcion_clave} ${p.funcion_nombre}`])).entries()
   ).sort((a, b) => a[1].localeCompare(b[1]));
@@ -238,6 +244,24 @@ export default function Home() {
     const res = await fetch(`/api/movimientos/${id}`, { method: 'DELETE' });
     if (res.ok) cargarTodo();
   };
+
+  const funcionesUnicas = Array.from(new Set(movimientos.map((m) => m.funcion_nombre))).sort();
+
+  const movimientosFiltrados = movimientos.filter((m) => {
+    if (filtroFuncion && m.funcion_nombre !== filtroFuncion) return false;
+    if (filtroTipo && m.tipo_tramite !== filtroTipo) return false;
+    if (filtroDesde && m.fecha?.toString().slice(0, 10) < filtroDesde) return false;
+    if (filtroHasta && m.fecha?.toString().slice(0, 10) > filtroHasta) return false;
+    if (filtroTexto) {
+      const q = filtroTexto.toLowerCase();
+      const texto = `${m.folio_oficio || ''} ${m.concepto} ${m.partida_clave}`.toLowerCase();
+      if (!texto.includes(q)) return false;
+    }
+    return true;
+  });
+
+  const hayFiltrosActivos = !!(filtroFuncion || filtroTipo || filtroDesde || filtroHasta || filtroTexto);
+  const limpiarFiltros = () => { setFiltroFuncion(''); setFiltroTipo(''); setFiltroDesde(''); setFiltroHasta(''); setFiltroTexto(''); };
 
   const guardarEdicion = async (partidaId: number) => {
     if (editValor === '' || isNaN(Number(editValor))) return;
@@ -523,6 +547,47 @@ export default function Home() {
           movimientos.length === 0 ? (
             <p className="text-[var(--text-muted)] text-sm">Aún no hay movimientos capturados.</p>
           ) : (
+            <>
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 mb-4">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                  <div className="col-span-2 sm:col-span-1">
+                    <label className={labelCls}>Buscar</label>
+                    <input className={inputCls} value={filtroTexto} onChange={(e) => setFiltroTexto(e.target.value)} placeholder="Folio, concepto, partida..." />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Función</label>
+                    <select className={inputCls} value={filtroFuncion} onChange={(e) => setFiltroFuncion(e.target.value)}>
+                      <option value="">Todas</option>
+                      {funcionesUnicas.map((f) => <option key={f} value={f}>{f.slice(0, 35)}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className={labelCls}>Tipo de trámite</label>
+                    <select className={inputCls} value={filtroTipo} onChange={(e) => setFiltroTipo(e.target.value)}>
+                      <option value="">Todos</option>
+                      {TIPOS.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className={labelCls}>Desde</label>
+                    <input type="date" className={inputCls} value={filtroDesde} onChange={(e) => setFiltroDesde(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Hasta</label>
+                    <input type="date" className={inputCls} value={filtroHasta} onChange={(e) => setFiltroHasta(e.target.value)} />
+                  </div>
+                </div>
+                {hayFiltrosActivos && (
+                  <div className="flex items-center justify-between mt-3">
+                    <span className="text-xs text-[var(--text-muted)]">{movimientosFiltrados.length} de {movimientos.length} movimientos</span>
+                    <button onClick={limpiarFiltros} className="text-xs text-[var(--accent)] hover:underline">Limpiar filtros</button>
+                  </div>
+                )}
+              </div>
+
+              {movimientosFiltrados.length === 0 ? (
+                <p className="text-[var(--text-muted)] text-sm">Ningún movimiento coincide con los filtros.</p>
+              ) : (
             <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-x-auto">
               <table className="w-full text-sm border-collapse">
                 <thead>
@@ -538,7 +603,7 @@ export default function Home() {
                   </tr>
                 </thead>
                 <tbody>
-                  {movimientos.map((m) => {
+                  {movimientosFiltrados.map((m) => {
                     const tipoInfo = TIPOS.find((t) => t.value === m.tipo_tramite);
                     const estadoInfo = ESTADOS.find((s) => s.value === m.estado);
                     return (
@@ -560,6 +625,8 @@ export default function Home() {
                 </tbody>
               </table>
             </div>
+              )}
+            </>
           )
         )}
       </main>
