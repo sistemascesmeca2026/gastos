@@ -397,6 +397,12 @@ export default function Home() {
               >
                 🖨 Imprimir / Guardar PDF
               </a>
+              <a
+                href={`/api/export/informe?ejercicio=${ejercicioSel}`}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 transition px-3.5 py-2 text-sm font-medium text-white"
+              >
+                📋 Descargar informe (para entrega)
+              </a>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
