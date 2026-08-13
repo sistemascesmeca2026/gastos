@@ -41,6 +41,7 @@ type Saldo = {
   capitulo_clave: string;
   capitulo_nombre: string;
   funcion_nombre: string;
+  fecha_corte: string | null;
   modificado: string;
   ministrado: string;
   retirado: string;
@@ -73,18 +74,29 @@ function money(v: string | number) {
 }
 
 function agruparPorFuncion(saldos: Saldo[]) {
-  const grupos: Record<string, { total_modificado: number; total_ministrado: number; total_ejercido: number; total_por_ejercer: number; partidas: Saldo[] }> = {};
+  const grupos: Record<string, { total_modificado: number; total_ministrado: number; total_ejercido: number; total_por_ejercer: number; partidas: Saldo[]; fechasCorte: Set<string> }> = {};
   for (const s of saldos) {
     if (!grupos[s.funcion_nombre]) {
-      grupos[s.funcion_nombre] = { total_modificado: 0, total_ministrado: 0, total_ejercido: 0, total_por_ejercer: 0, partidas: [] };
+      grupos[s.funcion_nombre] = { total_modificado: 0, total_ministrado: 0, total_ejercido: 0, total_por_ejercer: 0, partidas: [], fechasCorte: new Set() };
     }
     grupos[s.funcion_nombre].total_modificado += Number(s.modificado);
     grupos[s.funcion_nombre].total_ministrado += Number(s.ministrado);
     grupos[s.funcion_nombre].total_ejercido += Number(s.ejercido);
     grupos[s.funcion_nombre].total_por_ejercer += Number(s.por_ejercer);
     grupos[s.funcion_nombre].partidas.push(s);
+    if (s.fecha_corte) grupos[s.funcion_nombre].fechasCorte.add(s.fecha_corte.toString().slice(0, 10));
   }
   return grupos;
+}
+
+function corteLabel(fechasCorte: Set<string>): string {
+  if (fechasCorte.size === 0) return 'Sin corte';
+  if (fechasCorte.size === 1) {
+    const [f] = fechasCorte;
+    return `Corte: ${new Date(f + 'T00:00:00').toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })}`;
+  }
+  const fechas = Array.from(fechasCorte).sort();
+  return `Corte mixto: ${new Date(fechas[0] + 'T00:00:00').toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })} – ${new Date(fechas[fechas.length - 1] + 'T00:00:00').toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })}`;
 }
 
 const TABS = [
@@ -434,6 +446,7 @@ export default function Home() {
                         <span className="flex items-center gap-2.5 min-w-0">
                           <span className={`text-[var(--text-muted)] text-xs transition-transform ${abierta ? 'rotate-90' : ''}`}>▸</span>
                           <strong className="text-sm font-medium truncate">{funcion}</strong>
+                          <Badge label={corteLabel(grupo.fechasCorte)} color="bg-blue-500/10 text-blue-300 border-blue-500/25" />
                           {tieneSobregiro && <Badge label="⚠ Sobregiro" color="bg-rose-500/15 text-rose-300 border-rose-500/30" />}
                         </span>
                         <span className="text-xs text-[var(--text-muted)] whitespace-nowrap">
