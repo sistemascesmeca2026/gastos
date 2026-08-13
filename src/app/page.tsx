@@ -40,6 +40,7 @@ type Saldo = {
   capitulo_clave: string;
   capitulo_nombre: string;
   funcion_nombre: string;
+  modificado: string;
   ministrado: string;
   retirado: string;
   neto: string;
@@ -70,11 +71,12 @@ function money(v: string | number) {
 }
 
 function agruparPorFuncion(saldos: Saldo[]) {
-  const grupos: Record<string, { total_ministrado: number; total_ejercido: number; total_por_ejercer: number; partidas: Saldo[] }> = {};
+  const grupos: Record<string, { total_modificado: number; total_ministrado: number; total_ejercido: number; total_por_ejercer: number; partidas: Saldo[] }> = {};
   for (const s of saldos) {
     if (!grupos[s.funcion_nombre]) {
-      grupos[s.funcion_nombre] = { total_ministrado: 0, total_ejercido: 0, total_por_ejercer: 0, partidas: [] };
+      grupos[s.funcion_nombre] = { total_modificado: 0, total_ministrado: 0, total_ejercido: 0, total_por_ejercer: 0, partidas: [] };
     }
+    grupos[s.funcion_nombre].total_modificado += Number(s.modificado);
     grupos[s.funcion_nombre].total_ministrado += Number(s.ministrado);
     grupos[s.funcion_nombre].total_ejercido += Number(s.ejercido);
     grupos[s.funcion_nombre].total_por_ejercer += Number(s.por_ejercer);
@@ -242,6 +244,7 @@ export default function Home() {
   };
 
   const grupos = agruparPorFuncion(saldos);
+  const totalModificado = saldos.reduce((a, s) => a + Number(s.modificado), 0);
   const totalMinistrado = saldos.reduce((a, s) => a + Number(s.ministrado), 0);
   const totalEjercido = saldos.reduce((a, s) => a + Number(s.ejercido), 0);
   const totalComprometido = saldos.reduce((a, s) => a + Number(s.comprometido), 0);
@@ -405,7 +408,8 @@ export default function Home() {
               </a>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
+              <StatCard label="Presupuesto anual (Modificado)" value={`$${money(totalModificado)}`} />
               <StatCard label="Ministrado" value={`$${money(totalMinistrado)}`} />
               <StatCard label="Ejercido" value={`$${money(totalEjercido)}`} tone="warn" />
               <StatCard label="Comprometido" value={`$${money(totalComprometido)}`} />
@@ -431,7 +435,7 @@ export default function Home() {
                           {tieneSobregiro && <Badge label="⚠ Sobregiro" color="bg-rose-500/15 text-rose-300 border-rose-500/30" />}
                         </span>
                         <span className="text-xs text-[var(--text-muted)] whitespace-nowrap">
-                          ${money(grupo.total_ministrado)} · <span className="text-emerald-400">${money(grupo.total_por_ejercer)} disp.</span>
+                          Anual: ${money(grupo.total_modificado)} · Ministrado: ${money(grupo.total_ministrado)} · <span className="text-emerald-400">${money(grupo.total_por_ejercer)} disp.</span>
                         </span>
                       </button>
                       {abierta && (
@@ -441,6 +445,7 @@ export default function Home() {
                               <tr className="text-left text-[var(--text-muted)] border-b border-[var(--border)]">
                                 <th className="py-1.5 pr-3 font-medium">Partida</th>
                                 <th className="py-1.5 pr-3 font-medium">Descripción</th>
+                                <th className="py-1.5 pr-3 font-medium text-right">Modificado</th>
                                 <th className="py-1.5 pr-3 font-medium text-right">Ministrado</th>
                                 <th className="py-1.5 pr-3 font-medium text-right">Ejercido</th>
                                 <th className="py-1.5 pr-3 font-medium text-right">Comprometido</th>
@@ -458,6 +463,7 @@ export default function Home() {
                                 >
                                   <td className="py-1.5 pr-3 text-[var(--text-muted)]">{p.clave}</td>
                                   <td className="py-1.5 pr-3">{p.descripcion}</td>
+                                  <td className="py-1.5 pr-3 text-right">${money(p.modificado)}</td>
                                   <td className="py-1.5 pr-3 text-right">
                                     {editandoId === p.partida_id ? (
                                       <input
