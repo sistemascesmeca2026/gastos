@@ -324,7 +324,7 @@ export default function Home() {
   return (
     <div className="min-h-screen">
       <header className="border-b border-[var(--border)] bg-[var(--surface)]/60 backdrop-blur sticky top-0 z-10">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-5">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-5">
           <div className="flex items-start justify-between gap-3">
             <div>
               <h1 className="text-lg sm:text-xl font-semibold tracking-tight">CESMECA — Control presupuestal POA</h1>
@@ -380,7 +380,7 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
+      <main className="max-w-[1200px] mx-auto px-4 sm:px-6 py-6">
         {loading && <p className="text-[var(--text-muted)] text-sm">Cargando...</p>}
 
         {!loading && tab === 'dashboard' && <Dashboard ejercicio={ejercicioSel} />}
