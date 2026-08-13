@@ -5,6 +5,7 @@ import Dashboard from '@/components/Dashboard';
 import Catalogo from '@/components/Catalogo';
 import Concentrado from '@/components/Concentrado';
 import CambiarPassword from '@/components/CambiarPassword';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import ThemeToggle from '@/components/ThemeToggle';
 
 type Partida = {
@@ -266,9 +267,16 @@ export default function Home() {
     setTab('captura');
   };
 
-  const eliminarMovimiento = async (id: number) => {
-    if (!confirm('¿Eliminar este movimiento? Esta acción no se puede deshacer.')) return;
-    const res = await fetch(`/api/movimientos/${id}`, { method: 'DELETE' });
+  const [movimientoAEliminar, setMovimientoAEliminar] = useState<number | null>(null);
+
+  const eliminarMovimiento = (id: number) => {
+    setMovimientoAEliminar(id);
+  };
+
+  const confirmarEliminarMovimiento = async () => {
+    if (movimientoAEliminar === null) return;
+    const res = await fetch(`/api/movimientos/${movimientoAEliminar}`, { method: 'DELETE' });
+    setMovimientoAEliminar(null);
     if (res.ok) cargarTodo();
   };
 
@@ -708,6 +716,15 @@ export default function Home() {
         )}
       </main>
       {mostrarCambiarPassword && <CambiarPassword onClose={() => setMostrarCambiarPassword(false)} />}
+      {movimientoAEliminar !== null && (
+        <ConfirmDialog
+          titulo="Eliminar movimiento"
+          mensaje="Esta acción no se puede deshacer. El oficio se borrará permanentemente de la base de datos."
+          textoConfirmar="Eliminar"
+          onConfirmar={confirmarEliminarMovimiento}
+          onCancelar={() => setMovimientoAEliminar(null)}
+        />
+      )}
     </div>
   );
 }
