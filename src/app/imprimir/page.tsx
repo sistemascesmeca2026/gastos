@@ -6,31 +6,14 @@ type Saldo = {
   partida_id: number;
   clave: string;
   descripcion: string;
+  capitulo_clave: string;
+  capitulo_nombre: string;
   funcion_nombre: string;
-  original: string;
-  modificado: string;
   ministrado: string;
-  pre_compromiso: string;
-  comprometido: string;
-  devengado: string;
   ejercido: string;
-  pagado: string;
+  comprometido: string;
   por_ejercer: string;
-  disponible: string;
 };
-
-const COLS: { key: keyof Saldo; label: string }[] = [
-  { key: 'original', label: 'Original' },
-  { key: 'modificado', label: 'Modificado' },
-  { key: 'ministrado', label: 'Ministrado' },
-  { key: 'pre_compromiso', label: 'Pre-compromiso' },
-  { key: 'comprometido', label: 'Comprometido' },
-  { key: 'devengado', label: 'Devengado' },
-  { key: 'ejercido', label: 'Ejercido' },
-  { key: 'pagado', label: 'Pagado' },
-  { key: 'por_ejercer', label: 'Por ejercer' },
-  { key: 'disponible', label: 'Disponible' },
-];
 
 function money(v: string | number) {
   return Number(v).toLocaleString('es-MX', { minimumFractionDigits: 2 });
@@ -62,7 +45,7 @@ export default function ImprimirPage() {
   const hoy = new Date().toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' });
 
   return (
-    <div style={{ background: '#fff', color: '#111', fontFamily: 'Arial, sans-serif', padding: 24, maxWidth: 1400, margin: '0 auto' }}>
+    <div style={{ background: '#fff', color: '#111', fontFamily: 'Arial, sans-serif', padding: 24, maxWidth: 1000, margin: '0 auto' }}>
       <div className="no-print" style={{ marginBottom: 20 }}>
         <button
           onClick={() => window.print()}
@@ -75,24 +58,28 @@ export default function ImprimirPage() {
       <div style={{ textAlign: 'center', marginBottom: 20 }}>
         <h1 style={{ fontSize: 16, margin: 0 }}>UNIVERSIDAD DE CIENCIAS Y ARTES DE CHIAPAS</h1>
         <h2 style={{ fontSize: 13, fontStyle: 'italic', margin: '2px 0' }}>CENTRO DE ESTUDIOS SUPERIORES DE MÉXICO Y CENTROAMÉRICA</h2>
-        <h3 style={{ fontSize: 13, fontStyle: 'italic', margin: '2px 0' }}>ESTADO PRESUPUESTAL GENERAL DEL EJERCICIO 2026</h3>
+        <h3 style={{ fontSize: 13, fontStyle: 'italic', margin: '2px 0' }}>PROGRAMA OPERATIVO ANUAL 2026</h3>
         <p style={{ fontSize: 11, color: '#555', margin: '6px 0 0' }}>Generado el {hoy}</p>
       </div>
 
       {Object.entries(grupos).map(([funcion, filas]) => {
-        const totales = Object.fromEntries(COLS.map(({ key }) => [key, filas.reduce((a, f) => a + Number(f[key]), 0)]));
+        const totMin = filas.reduce((a, f) => a + Number(f.ministrado), 0);
+        const totEj = filas.reduce((a, f) => a + Number(f.ejercido), 0);
+        const totComp = filas.reduce((a, f) => a + Number(f.comprometido), 0);
+        const totPorEj = filas.reduce((a, f) => a + Number(f.por_ejercer), 0);
 
         return (
           <div key={funcion} style={{ marginBottom: 28, pageBreakInside: 'avoid' }}>
             <h4 style={{ fontSize: 12, background: '#eee', padding: '6px 8px', margin: '0 0 6px' }}>{funcion}</h4>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 9 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 10 }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid #999' }}>
                   <th style={{ textAlign: 'left', padding: '4px' }}>Partida</th>
                   <th style={{ textAlign: 'left', padding: '4px' }}>Descripción</th>
-                  {COLS.map((c) => (
-                    <th key={c.key} style={{ textAlign: 'right', padding: '4px', whiteSpace: 'nowrap' }}>{c.label}</th>
-                  ))}
+                  <th style={{ textAlign: 'right', padding: '4px' }}>Recurso</th>
+                  <th style={{ textAlign: 'right', padding: '4px' }}>Ejercido</th>
+                  <th style={{ textAlign: 'right', padding: '4px' }}>Comprometido</th>
+                  <th style={{ textAlign: 'right', padding: '4px' }}>Por ejercer</th>
                 </tr>
               </thead>
               <tbody>
@@ -100,16 +87,18 @@ export default function ImprimirPage() {
                   <tr key={f.partida_id} style={{ borderBottom: '1px solid #eee' }}>
                     <td style={{ padding: '3px 4px' }}>{f.clave}</td>
                     <td style={{ padding: '3px 4px' }}>{f.descripcion}</td>
-                    {COLS.map((c) => (
-                      <td key={c.key} style={{ padding: '3px 4px', textAlign: 'right', whiteSpace: 'nowrap' }}>${money(f[c.key])}</td>
-                    ))}
+                    <td style={{ padding: '3px 4px', textAlign: 'right' }}>${money(f.ministrado)}</td>
+                    <td style={{ padding: '3px 4px', textAlign: 'right' }}>${money(f.ejercido)}</td>
+                    <td style={{ padding: '3px 4px', textAlign: 'right' }}>${money(f.comprometido)}</td>
+                    <td style={{ padding: '3px 4px', textAlign: 'right' }}>${money(f.por_ejercer)}</td>
                   </tr>
                 ))}
                 <tr style={{ fontWeight: 'bold', borderTop: '1px solid #999' }}>
                   <td colSpan={2} style={{ padding: '4px' }}>TOTAL</td>
-                  {COLS.map((c) => (
-                    <td key={c.key} style={{ padding: '4px', textAlign: 'right', whiteSpace: 'nowrap' }}>${money(totales[c.key])}</td>
-                  ))}
+                  <td style={{ padding: '4px', textAlign: 'right' }}>${money(totMin)}</td>
+                  <td style={{ padding: '4px', textAlign: 'right' }}>${money(totEj)}</td>
+                  <td style={{ padding: '4px', textAlign: 'right' }}>${money(totComp)}</td>
+                  <td style={{ padding: '4px', textAlign: 'right' }}>${money(totPorEj)}</td>
                 </tr>
               </tbody>
             </table>
@@ -121,7 +110,6 @@ export default function ImprimirPage() {
         @media print {
           .no-print { display: none; }
           body { background: #fff; }
-          @page { size: landscape; }
         }
       `}</style>
     </div>

@@ -34,18 +34,12 @@ type Saldo = {
   capitulo_clave: string;
   capitulo_nombre: string;
   funcion_nombre: string;
-  original: string;
-  modificado: string;
   ministrado: string;
-  pre_compromiso: string;
-  comprometido: string;
-  devengado: string;
-  ejercido: string;
-  pagado: string;
-  por_ejercer: string;
-  disponible: string;
   retirado: string;
   neto: string;
+  ejercido: string;
+  comprometido: string;
+  por_ejercer: string;
 };
 
 const TIPOS = [
@@ -344,29 +338,21 @@ export default function Home() {
                           <table className="w-full text-xs mt-3 border-collapse">
                             <thead>
                               <tr className="text-left text-[var(--text-muted)] border-b border-[var(--border)]">
-                                <th className="py-1.5 pr-3 font-medium whitespace-nowrap">Partida</th>
-                                <th className="py-1.5 pr-3 font-medium whitespace-nowrap">Descripción</th>
-                                <th className="py-1.5 pr-3 font-medium text-right whitespace-nowrap">Original</th>
-                                <th className="py-1.5 pr-3 font-medium text-right whitespace-nowrap">Modificado</th>
-                                <th className="py-1.5 pr-3 font-medium text-right whitespace-nowrap">Ministrado</th>
-                                <th className="py-1.5 pr-3 font-medium text-right whitespace-nowrap">Pre-compromiso</th>
-                                <th className="py-1.5 pr-3 font-medium text-right whitespace-nowrap">Comprometido</th>
-                                <th className="py-1.5 pr-3 font-medium text-right whitespace-nowrap">Devengado</th>
-                                <th className="py-1.5 pr-3 font-medium text-right whitespace-nowrap">Ejercido</th>
-                                <th className="py-1.5 pr-3 font-medium text-right whitespace-nowrap">Pagado</th>
-                                <th className="py-1.5 pr-3 font-medium text-right whitespace-nowrap">Por ejercer</th>
-                                <th className="py-1.5 pr-3 font-medium text-right whitespace-nowrap">Disponible</th>
+                                <th className="py-1.5 pr-3 font-medium">Partida</th>
+                                <th className="py-1.5 pr-3 font-medium">Descripción</th>
+                                <th className="py-1.5 pr-3 font-medium text-right">Ministrado</th>
+                                <th className="py-1.5 pr-3 font-medium text-right">Ejercido</th>
+                                <th className="py-1.5 pr-3 font-medium text-right">Comprometido</th>
+                                <th className="py-1.5 pr-3 font-medium text-right">Por ejercer</th>
                                 <th className="py-1.5 font-medium text-right w-8"></th>
                               </tr>
                             </thead>
                             <tbody>
                               {grupo.partidas.map((p) => (
                                 <tr key={p.partida_id} className="border-b border-[var(--border)]/60 hover:bg-[var(--surface-2)]/40">
-                                  <td className="py-1.5 pr-3 text-[var(--text-muted)] whitespace-nowrap">{p.clave}</td>
-                                  <td className="py-1.5 pr-3 min-w-[220px]">{p.descripcion}</td>
-                                  <td className="py-1.5 pr-3 text-right whitespace-nowrap">${money(p.original)}</td>
-                                  <td className="py-1.5 pr-3 text-right whitespace-nowrap">${money(p.modificado)}</td>
-                                  <td className="py-1.5 pr-3 text-right whitespace-nowrap">
+                                  <td className="py-1.5 pr-3 text-[var(--text-muted)]">{p.clave}</td>
+                                  <td className="py-1.5 pr-3">{p.descripcion}</td>
+                                  <td className="py-1.5 pr-3 text-right">
                                     {editandoId === p.partida_id ? (
                                       <input
                                         autoFocus
@@ -381,15 +367,11 @@ export default function Home() {
                                       `$${money(p.ministrado)}`
                                     )}
                                   </td>
-                                  <td className="py-1.5 pr-3 text-right whitespace-nowrap">${money(p.pre_compromiso)}</td>
-                                  <td className="py-1.5 pr-3 text-right whitespace-nowrap">${money(p.comprometido)}</td>
-                                  <td className="py-1.5 pr-3 text-right whitespace-nowrap">${money(p.devengado)}</td>
-                                  <td className="py-1.5 pr-3 text-right whitespace-nowrap">${money(p.ejercido)}</td>
-                                  <td className="py-1.5 pr-3 text-right whitespace-nowrap">${money(p.pagado)}</td>
-                                  <td className={`py-1.5 pr-3 text-right font-medium whitespace-nowrap ${Number(p.por_ejercer) < 0 ? 'text-rose-400' : ''}`}>
+                                  <td className="py-1.5 pr-3 text-right">${money(p.ejercido)}</td>
+                                  <td className="py-1.5 pr-3 text-right">${money(p.comprometido)}</td>
+                                  <td className={`py-1.5 pr-3 text-right font-medium ${Number(p.por_ejercer) < 0 ? 'text-rose-400' : ''}`}>
                                     ${money(p.por_ejercer)}
                                   </td>
-                                  <td className="py-1.5 pr-3 text-right whitespace-nowrap text-emerald-400">${money(p.disponible)}</td>
                                   <td className="py-1.5 text-right">
                                     {editandoId === p.partida_id ? (
                                       <div className="flex gap-1 justify-end">
