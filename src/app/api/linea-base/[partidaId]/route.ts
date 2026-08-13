@@ -1,13 +1,28 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 
+const CAMPOS_EDITABLES = ['original', 'modificado', 'ministrado', 'pre_compromiso', 'devengado', 'pagado', 'disponible'] as const;
+
 export async function PATCH(req: Request, { params }: { params: Promise<{ partidaId: string }> }) {
   try {
     const { partidaId } = await params;
-    const { ministrado } = await req.json();
+    const body = await req.json();
 
-    if (ministrado === undefined || ministrado === null || isNaN(Number(ministrado))) {
-      return NextResponse.json({ error: 'Monto inválido' }, { status: 400 });
+    // Modo simple retrocompatible: solo { ministrado }
+    // Modo completo: { campo: 'original'|'modificado'|..., valor: number }
+    let campo: string;
+    let valor: number;
+
+    if ('campo' in body) {
+      campo = body.campo;
+      valor = Number(body.valor);
+    } else {
+      campo = 'ministrado';
+      valor = Number(body.ministrado);
+    }
+
+    if (!CAMPOS_EDITABLES.includes(campo as any) || isNaN(valor)) {
+      return NextResponse.json({ error: 'Campo o monto inválido' }, { status: 400 });
     }
 
     const existente = await pool.query(
@@ -17,14 +32,13 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ partid
 
     if (existente.rows.length === 0) {
       await pool.query(
-        `INSERT INTO linea_base (partida_id, fecha_corte, original, modificado, ministrado, por_ejercer, disponible)
-         VALUES ($1, CURRENT_DATE, $2, $2, $2, $2, $2)`,
-        [partidaId, Number(ministrado)]
+        `INSERT INTO linea_base (partida_id, fecha_corte, ${campo}) VALUES ($1, CURRENT_DATE, $2)`,
+        [partidaId, valor]
       );
     } else {
       await pool.query(
-        `UPDATE linea_base SET ministrado = $1, modificado = $1 WHERE id = $2`,
-        [Number(ministrado), existente.rows[0].id]
+        `UPDATE linea_base SET ${campo} = $1 WHERE id = $2`,
+        [valor, existente.rows[0].id]
       );
     }
 

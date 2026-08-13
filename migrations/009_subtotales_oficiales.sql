@@ -1,0 +1,2 @@
+ALTER TABLE capitulos ADD COLUMN IF NOT EXISTS subtotal_oficial NUMERIC(14,2);
+ALTER TABLE funciones ADD COLUMN IF NOT EXISTS subtotal_oficial NUMERIC(14,2);

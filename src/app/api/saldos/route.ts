@@ -8,8 +8,10 @@ export async function GET(req: Request) {
 
     const base = `
       SELECT
-        partida_id, clave, descripcion, capitulo_clave, capitulo_nombre, funcion_nombre, ejercicio,
-        ministrado, retirado, neto, ejercido, comprometido, por_ejercer
+        partida_id, clave, descripcion, capitulo_id, capitulo_clave, capitulo_nombre,
+        funcion_id, funcion_nombre, ejercicio,
+        original, modificado, ministrado, pre_compromiso, comprometido, devengado,
+        ejercido, pagado, por_ejercer, disponible, retirado, neto
       FROM v_saldo_partida
     `;
 

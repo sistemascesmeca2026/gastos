@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Dashboard from '@/components/Dashboard';
 import Catalogo from '@/components/Catalogo';
+import Concentrado from '@/components/Concentrado';
 import CambiarPassword from '@/components/CambiarPassword';
 import ThemeToggle from '@/components/ThemeToggle';
 
@@ -85,6 +86,7 @@ const TABS = [
   { key: 'dashboard', label: 'Dashboard' },
   { key: 'captura', label: 'Captura de oficios' },
   { key: 'presupuesto', label: 'Presupuesto por función' },
+  { key: 'concentrado', label: 'Concentrado oficial' },
   { key: 'movimientos', label: 'Movimientos' },
   { key: 'catalogo', label: 'Catálogo' },
 ] as const;
@@ -491,6 +493,8 @@ export default function Home() {
             )}
           </>
         )}
+
+        {!loading && tab === 'concentrado' && <Concentrado ejercicio={ejercicioSel} />}
 
         {!loading && tab === 'captura' && (
           <form onSubmit={handleSubmit} className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 sm:p-6 space-y-4 max-w-2xl">

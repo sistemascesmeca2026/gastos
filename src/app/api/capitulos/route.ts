@@ -4,7 +4,7 @@ import pool from '@/lib/db';
 export async function GET() {
   try {
     const result = await pool.query(`
-      SELECT c.id, c.clave, c.nombre, c.funcion_id, f.clave AS funcion_clave, f.nombre AS funcion_nombre
+      SELECT c.id, c.clave, c.nombre, c.funcion_id, c.subtotal_oficial, f.clave AS funcion_clave, f.nombre AS funcion_nombre
       FROM capitulos c
       JOIN funciones f ON f.id = c.funcion_id
       ORDER BY f.clave, c.clave

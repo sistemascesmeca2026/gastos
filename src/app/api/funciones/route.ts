@@ -7,8 +7,8 @@ export async function GET(req: Request) {
     const ejercicio = searchParams.get('ejercicio');
 
     const result = ejercicio
-      ? await pool.query(`SELECT id, clave, nombre, ejercicio FROM funciones WHERE ejercicio = $1 ORDER BY clave`, [ejercicio])
-      : await pool.query(`SELECT id, clave, nombre, ejercicio FROM funciones ORDER BY ejercicio DESC, clave`);
+      ? await pool.query(`SELECT id, clave, nombre, ejercicio, subtotal_oficial FROM funciones WHERE ejercicio = $1 ORDER BY clave`, [ejercicio])
+      : await pool.query(`SELECT id, clave, nombre, ejercicio, subtotal_oficial FROM funciones ORDER BY ejercicio DESC, clave`);
 
     return NextResponse.json(result.rows);
   } catch (err: any) {
