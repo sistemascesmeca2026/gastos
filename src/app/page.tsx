@@ -135,6 +135,7 @@ export default function Home() {
 
   const [funcionSel, setFuncionSel] = useState('');
   const [capituloSel, setCapituloSel] = useState('');
+  const [editandoMovId, setEditandoMovId] = useState<number | null>(null);
 
   const funciones = Array.from(
     new Map(partidas.map((p) => [p.funcion_nombre, `${p.funcion_clave} ${p.funcion_nombre}`])).entries()
@@ -178,8 +179,10 @@ export default function Home() {
 
     setSaving(true);
     try {
-      const res = await fetch('/api/movimientos', {
-        method: 'POST',
+      const url = editandoMovId ? `/api/movimientos/${editandoMovId}` : '/api/movimientos';
+      const method = editandoMovId ? 'PATCH' : 'POST';
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       });
@@ -187,13 +190,14 @@ export default function Home() {
       if (!res.ok) {
         setError(data.error || 'Error al guardar');
       } else {
-        setOk('Oficio capturado correctamente.');
+        setOk(editandoMovId ? 'Oficio actualizado correctamente.' : 'Oficio capturado correctamente.');
         setForm({
           partida_id: '', folio_oficio: '', fecha: '', tipo_tramite: 'solicitud_recursos',
           estado: 'solicitado', monto: '', concepto: '', observaciones: '',
         });
         setFuncionSel('');
         setCapituloSel('');
+        setEditandoMovId(null);
         cargarTodo();
       }
     } catch {
@@ -210,6 +214,30 @@ export default function Home() {
   const totalPorEjercer = saldos.reduce((a, s) => a + Number(s.por_ejercer), 0);
 
   const toggle = (funcion: string) => setAbiertas((prev) => ({ ...prev, [funcion]: !prev[funcion] }));
+
+  const iniciarEdicionMovimiento = (m: Movimiento) => {
+    const partida = partidas.find((p) => p.partida_clave === m.partida_clave && p.funcion_nombre === m.funcion_nombre);
+    setFuncionSel(m.funcion_nombre);
+    if (partida) setCapituloSel(`${partida.capitulo_clave} · ${partida.capitulo_nombre}`);
+    setForm({
+      partida_id: partida ? String(partida.id) : '',
+      folio_oficio: m.folio_oficio || '',
+      fecha: m.fecha?.toString().slice(0, 10) || '',
+      tipo_tramite: m.tipo_tramite,
+      estado: m.estado,
+      monto: m.monto,
+      concepto: m.concepto,
+      observaciones: '',
+    });
+    setEditandoMovId(m.id);
+    setTab('captura');
+  };
+
+  const eliminarMovimiento = async (id: number) => {
+    if (!confirm('¿Eliminar este movimiento? Esta acción no se puede deshacer.')) return;
+    const res = await fetch(`/api/movimientos/${id}`, { method: 'DELETE' });
+    if (res.ok) cargarTodo();
+  };
 
   const guardarEdicion = async (partidaId: number) => {
     if (editValor === '' || isNaN(Number(editValor))) return;
@@ -376,6 +404,23 @@ export default function Home() {
 
         {!loading && tab === 'captura' && (
           <form onSubmit={handleSubmit} className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 sm:p-6 space-y-4 max-w-2xl">
+            {editandoMovId && (
+              <div className="flex items-center justify-between rounded-lg bg-amber-500/10 border border-amber-500/30 px-3 py-2">
+                <span className="text-xs text-amber-300">Editando oficio existente</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditandoMovId(null);
+                    setForm({ partida_id: '', folio_oficio: '', fecha: '', tipo_tramite: 'solicitud_recursos', estado: 'solicitado', monto: '', concepto: '', observaciones: '' });
+                    setFuncionSel('');
+                    setCapituloSel('');
+                  }}
+                  className="text-xs text-[var(--text-muted)] hover:text-[var(--text)]"
+                >
+                  Cancelar edición
+                </button>
+              </div>
+            )}
             <div>
               <label className={labelCls}>Función / Programa</label>
               <select
@@ -469,7 +514,7 @@ export default function Home() {
               disabled={saving}
               className="rounded-lg bg-[var(--accent)] hover:bg-blue-500 disabled:opacity-50 transition px-5 py-2.5 text-sm font-medium text-white"
             >
-              {saving ? 'Guardando...' : 'Guardar oficio'}
+              {saving ? 'Guardando...' : editandoMovId ? 'Actualizar oficio' : 'Guardar oficio'}
             </button>
           </form>
         )}
@@ -489,6 +534,7 @@ export default function Home() {
                     <th className="py-2.5 px-4 font-medium">Estado</th>
                     <th className="py-2.5 px-4 font-medium text-right">Monto</th>
                     <th className="py-2.5 px-4 font-medium">Concepto</th>
+                    <th className="py-2.5 px-4 font-medium text-right">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -504,6 +550,10 @@ export default function Home() {
                         <td className="py-2.5 px-4">{estadoInfo && <Badge label={estadoInfo.label} color={estadoInfo.color} />}</td>
                         <td className="py-2.5 px-4 text-right font-medium">${money(m.monto)}</td>
                         <td className="py-2.5 px-4 text-[var(--text-muted)]">{m.concepto}</td>
+                        <td className="py-2.5 px-4 text-right whitespace-nowrap">
+                          <button onClick={() => iniciarEdicionMovimiento(m)} className="text-[var(--text-muted)] hover:text-[var(--accent)] text-xs mr-2" title="Editar">✎</button>
+                          <button onClick={() => eliminarMovimiento(m.id)} className="text-[var(--text-muted)] hover:text-rose-400 text-xs" title="Eliminar">🗑</button>
+                        </td>
                       </tr>
                     );
                   })}
