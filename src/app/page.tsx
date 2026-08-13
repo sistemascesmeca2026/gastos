@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Dashboard from '@/components/Dashboard';
 import Catalogo from '@/components/Catalogo';
+import CambiarPassword from '@/components/CambiarPassword';
 
 type Partida = {
   id: number;
@@ -180,6 +181,8 @@ export default function Home() {
     window.location.href = '/login';
   };
 
+  const [mostrarCambiarPassword, setMostrarCambiarPassword] = useState(false);
+
   useEffect(() => {
     cargarTodo().finally(() => setLoading(false));
   }, []);
@@ -303,6 +306,12 @@ export default function Home() {
             {usuario && (
               <div className="flex items-center gap-2 text-xs text-[var(--text-muted)] whitespace-nowrap pt-1">
                 <span>{usuario.nombre}</span>
+                <button
+                  onClick={() => setMostrarCambiarPassword(true)}
+                  className="text-[var(--text-muted)] hover:text-[var(--accent)] border border-[var(--border)] rounded px-2 py-1"
+                >
+                  Contraseña
+                </button>
                 <button
                   onClick={cerrarSesion}
                   className="text-[var(--text-muted)] hover:text-rose-400 border border-[var(--border)] rounded px-2 py-1"
@@ -663,6 +672,7 @@ export default function Home() {
           )
         )}
       </main>
+      {mostrarCambiarPassword && <CambiarPassword onClose={() => setMostrarCambiarPassword(false)} />}
     </div>
   );
 }
