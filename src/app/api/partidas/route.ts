@@ -22,3 +22,39 @@ export async function GET() {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
+
+export async function POST(req: Request) {
+  const client = await pool.connect();
+  try {
+    const { capitulo_id, clave, descripcion, ministrado } = await req.json();
+    if (!capitulo_id || !clave || !descripcion) {
+      return NextResponse.json({ error: 'Capítulo, clave y descripción son obligatorios' }, { status: 400 });
+    }
+
+    await client.query('BEGIN');
+
+    const partidaResult = await client.query(
+      `INSERT INTO partidas (capitulo_id, clave, descripcion) VALUES ($1, $2, $3) RETURNING id, clave, descripcion, capitulo_id`,
+      [capitulo_id, clave.trim(), descripcion.trim()]
+    );
+    const partida = partidaResult.rows[0];
+
+    const montoMinistrado = Number(ministrado) || 0;
+    await client.query(
+      `INSERT INTO linea_base (partida_id, fecha_corte, original, modificado, ministrado, por_ejercer, disponible)
+       VALUES ($1, CURRENT_DATE, $2, $2, $2, $2, $2)`,
+      [partida.id, montoMinistrado]
+    );
+
+    await client.query('COMMIT');
+    return NextResponse.json(partida, { status: 201 });
+  } catch (err: any) {
+    await client.query('ROLLBACK');
+    if (err.code === '23505') {
+      return NextResponse.json({ error: 'Esa partida ya existe en ese capítulo' }, { status: 409 });
+    }
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  } finally {
+    client.release();
+  }
+}

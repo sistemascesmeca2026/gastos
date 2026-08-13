@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Dashboard from '@/components/Dashboard';
+import Catalogo from '@/components/Catalogo';
 
 type Partida = {
   id: number;
@@ -81,6 +82,7 @@ const TABS = [
   { key: 'captura', label: 'Captura de oficios' },
   { key: 'presupuesto', label: 'Presupuesto por función' },
   { key: 'movimientos', label: 'Movimientos' },
+  { key: 'catalogo', label: 'Catálogo' },
 ] as const;
 
 type TabKey = typeof TABS[number]['key'];
@@ -236,6 +238,7 @@ export default function Home() {
         {loading && <p className="text-[var(--text-muted)] text-sm">Cargando...</p>}
 
         {!loading && tab === 'dashboard' && <Dashboard />}
+        {!loading && tab === 'catalogo' && <Catalogo />}
 
         {!loading && tab === 'presupuesto' && (
           <>
