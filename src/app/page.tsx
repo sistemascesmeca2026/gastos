@@ -148,6 +148,7 @@ export default function Home() {
   const [funcionSel, setFuncionSel] = useState('');
   const [capituloSel, setCapituloSel] = useState('');
   const [editandoMovId, setEditandoMovId] = useState<number | null>(null);
+  const [folioNumero, setFolioNumero] = useState('');
 
   const [filtroFuncion, setFiltroFuncion] = useState('');
   const [filtroTipo, setFiltroTipo] = useState('');
@@ -218,12 +219,13 @@ export default function Home() {
 
     setSaving(true);
     try {
+      const folioCompleto = folioNumero.trim() ? `${folioNumero.trim()}/ADM.CESMECA/${ejercicioSel}` : '';
       const url = editandoMovId ? `/api/movimientos/${editandoMovId}` : '/api/movimientos';
       const method = editandoMovId ? 'PATCH' : 'POST';
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, folio_oficio: folioCompleto }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -234,6 +236,7 @@ export default function Home() {
           partida_id: '', folio_oficio: '', fecha: '', tipo_tramite: 'solicitud_recursos',
           estado: 'solicitado', monto: '', concepto: '', observaciones: '',
         });
+        setFolioNumero('');
         setFuncionSel('');
         setCapituloSel('');
         setEditandoMovId(null);
@@ -270,6 +273,7 @@ export default function Home() {
       observaciones: '',
     });
     setEditandoMovId(m.id);
+    setFolioNumero((m.folio_oficio || '').split('/')[0]);
     setTab('captura');
   };
 
@@ -524,6 +528,7 @@ export default function Home() {
                   onClick={() => {
                     setEditandoMovId(null);
                     setForm({ partida_id: '', folio_oficio: '', fecha: '', tipo_tramite: 'solicitud_recursos', estado: 'solicitado', monto: '', concepto: '', observaciones: '' });
+                    setFolioNumero('');
                     setFuncionSel('');
                     setCapituloSel('');
                   }}
@@ -578,7 +583,15 @@ export default function Home() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className={labelCls}>Folio de oficio</label>
-                <input className={inputCls} value={form.folio_oficio} onChange={(e) => setForm({ ...form, folio_oficio: e.target.value })} placeholder="OF-2026-112" />
+                <div className="flex items-center gap-1.5">
+                  <input
+                    className={`${inputCls} w-24`}
+                    value={folioNumero}
+                    onChange={(e) => setFolioNumero(e.target.value)}
+                    placeholder="065"
+                  />
+                  <span className="text-sm text-[var(--text-muted)] whitespace-nowrap">/ADM.CESMECA/{ejercicioSel}</span>
+                </div>
               </div>
               <div>
                 <label className={labelCls}>Fecha</label>
