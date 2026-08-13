@@ -85,9 +85,9 @@ function agruparPorFuncion(saldos: Saldo[]) {
 const TABS = [
   { key: 'dashboard', label: 'Dashboard' },
   { key: 'captura', label: 'Captura de oficios' },
-  { key: 'presupuesto', label: 'Presupuesto por función' },
-  { key: 'concentrado', label: 'Concentrado oficial' },
+  { key: 'presupuesto', label: 'Presupuesto (resumen)' },
   { key: 'movimientos', label: 'Movimientos' },
+  { key: 'concentrado', label: 'Concentrado oficial (10 col.)' },
   { key: 'catalogo', label: 'Catálogo' },
 ] as const;
 
