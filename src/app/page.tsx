@@ -343,8 +343,9 @@ export default function Home() {
               <div className="space-y-2.5">
                 {Object.entries(grupos).map(([funcion, grupo]) => {
                   const abierta = !!abiertas[funcion];
+                  const tieneSobregiro = grupo.partidas.some((p) => Number(p.por_ejercer) < 0);
                   return (
-                    <div key={funcion} className="rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden">
+                    <div key={funcion} className={`rounded-xl border bg-[var(--surface)] overflow-hidden ${tieneSobregiro ? 'border-rose-500/40' : 'border-[var(--border)]'}`}>
                       <button
                         onClick={() => toggle(funcion)}
                         className="w-full flex justify-between items-center gap-3 px-4 py-3.5 text-left hover:bg-[var(--surface-2)]/50 transition"
@@ -352,6 +353,7 @@ export default function Home() {
                         <span className="flex items-center gap-2.5 min-w-0">
                           <span className={`text-[var(--text-muted)] text-xs transition-transform ${abierta ? 'rotate-90' : ''}`}>▸</span>
                           <strong className="text-sm font-medium truncate">{funcion}</strong>
+                          {tieneSobregiro && <Badge label="⚠ Sobregiro" color="bg-rose-500/15 text-rose-300 border-rose-500/30" />}
                         </span>
                         <span className="text-xs text-[var(--text-muted)] whitespace-nowrap">
                           ${money(grupo.total_ministrado)} · <span className="text-emerald-400">${money(grupo.total_por_ejercer)} disp.</span>
@@ -373,7 +375,12 @@ export default function Home() {
                             </thead>
                             <tbody>
                               {grupo.partidas.map((p) => (
-                                <tr key={p.partida_id} className="border-b border-[var(--border)]/60 hover:bg-[var(--surface-2)]/40">
+                                <tr
+                                  key={p.partida_id}
+                                  className={`border-b border-[var(--border)]/60 hover:bg-[var(--surface-2)]/40 ${
+                                    Number(p.por_ejercer) < 0 ? 'bg-rose-500/10' : ''
+                                  }`}
+                                >
                                   <td className="py-1.5 pr-3 text-[var(--text-muted)]">{p.clave}</td>
                                   <td className="py-1.5 pr-3">{p.descripcion}</td>
                                   <td className="py-1.5 pr-3 text-right">

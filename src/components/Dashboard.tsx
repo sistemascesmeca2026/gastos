@@ -12,6 +12,14 @@ type DashboardData = {
   porMes: { mes: string; total: string }[];
 };
 
+type SaldoPartida = {
+  partida_id: number;
+  clave: string;
+  descripcion: string;
+  funcion_nombre: string;
+  por_ejercer: string;
+};
+
 const TIPO_LABELS: Record<string, string> = {
   solicitud_recursos: 'Solicitud de recursos',
   comprobacion_viaticos: 'Comprobación de viáticos',
@@ -27,6 +35,7 @@ function money(v: string | number) {
 
 export default function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
+  const [sobregiradas, setSobregiradas] = useState<SaldoPartida[]>([]);
   const funcRef = useRef<HTMLCanvasElement>(null);
   const tipoRef = useRef<HTMLCanvasElement>(null);
   const mesRef = useRef<HTMLCanvasElement>(null);
@@ -36,6 +45,9 @@ export default function Dashboard() {
     fetch('/api/dashboard')
       .then((r) => r.json())
       .then(setData);
+    fetch('/api/saldos')
+      .then((r) => r.json())
+      .then((saldos: SaldoPartida[]) => setSobregiradas(saldos.filter((s) => Number(s.por_ejercer) < 0)));
   }, []);
 
   useEffect(() => {
@@ -111,6 +123,18 @@ export default function Dashboard() {
 
   return (
     <div>
+      {sobregiradas.length > 0 && (
+        <div className="rounded-xl border border-rose-500/40 bg-rose-500/5 p-4 mb-5">
+          <p className="text-sm font-medium text-rose-300 mb-2">⚠ {sobregiradas.length} partida{sobregiradas.length > 1 ? 's' : ''} sobregirada{sobregiradas.length > 1 ? 's' : ''}</p>
+          <ul className="text-xs text-[var(--text-muted)] space-y-1">
+            {sobregiradas.map((s) => (
+              <li key={s.partida_id}>
+                <span className="text-rose-400 font-medium">{s.clave}</span> {s.descripcion} — {s.funcion_nombre.slice(0, 40)} · <span className="text-rose-400">${money(s.por_ejercer)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-3 mb-6">
         <div className={cardCls}>
           <p className="text-xs text-[var(--text-muted)] mb-1">Ministrado total</p>
