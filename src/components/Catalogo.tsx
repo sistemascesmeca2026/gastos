@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 
 type Funcion = { id: number; clave: string; nombre: string; ejercicio: number };
 type Capitulo = { id: number; clave: string; nombre: string; funcion_id: number; funcion_clave: string; funcion_nombre: string };
+type Partida = { id: number; partida_clave: string; partida_descripcion: string; capitulo_clave: string; capitulo_nombre: string; funcion_clave: string; funcion_nombre: string };
 
 const inputCls =
   'w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/50 disabled:opacity-40 disabled:cursor-not-allowed transition';
@@ -14,6 +15,7 @@ const btnCls = 'rounded-lg bg-[var(--accent)] hover:bg-blue-500 disabled:opacity
 export default function Catalogo({ ejercicioSel }: { ejercicioSel: number }) {
   const [funciones, setFunciones] = useState<Funcion[]>([]);
   const [capitulos, setCapitulos] = useState<Capitulo[]>([]);
+  const [partidas, setPartidas] = useState<Partida[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null);
@@ -40,9 +42,11 @@ export default function Catalogo({ ejercicioSel }: { ejercicioSel: number }) {
     return Promise.all([
       fetch('/api/funciones').then((r) => r.json()),
       fetch('/api/capitulos').then((r) => r.json()),
-    ]).then(([f, c]) => {
+      fetch(`/api/partidas?ejercicio=${ejercicioSel}`).then((r) => r.json()),
+    ]).then(([f, c, p]) => {
       setFunciones(f);
       setCapitulos(c);
+      setPartidas(p);
     });
   };
 
@@ -120,6 +124,67 @@ export default function Catalogo({ ejercicioSel }: { ejercicioSel: number }) {
 
   const capitulosDeFuncion = capitulos.filter((c) => String(c.funcion_id) === pFuncionId);
 
+  const [editFuncionId, setEditFuncionId] = useState<number | null>(null);
+  const [editFuncionValor, setEditFuncionValor] = useState({ clave: '', nombre: '' });
+  const [editCapituloId, setEditCapituloId] = useState<number | null>(null);
+  const [editCapituloValor, setEditCapituloValor] = useState({ clave: '', nombre: '' });
+  const [editPartidaId, setEditPartidaId] = useState<number | null>(null);
+  const [editPartidaValor, setEditPartidaValor] = useState({ clave: '', descripcion: '' });
+  const [confirmarEliminar, setConfirmarEliminar] = useState<{ tipo: 'funcion' | 'capitulo' | 'partida'; id: number; nombre: string } | null>(null);
+
+  const guardarEdicionFuncion = async (id: number) => {
+    const res = await fetch(`/api/funciones/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(editFuncionValor),
+    });
+    const data = await res.json();
+    if (!res.ok) return flash(data.error || 'Error al editar', false);
+    setEditFuncionId(null);
+    flash('Función actualizada.', true);
+    cargar();
+  };
+
+  const guardarEdicionCapitulo = async (id: number) => {
+    const res = await fetch(`/api/capitulos/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(editCapituloValor),
+    });
+    const data = await res.json();
+    if (!res.ok) return flash(data.error || 'Error al editar', false);
+    setEditCapituloId(null);
+    flash('Capítulo actualizado.', true);
+    cargar();
+  };
+
+  const guardarEdicionPartida = async (id: number) => {
+    const res = await fetch(`/api/partidas/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(editPartidaValor),
+    });
+    const data = await res.json();
+    if (!res.ok) return flash(data.error || 'Error al editar', false);
+    setEditPartidaId(null);
+    flash('Partida actualizada.', true);
+    cargar();
+  };
+
+  const ejecutarEliminar = async () => {
+    if (!confirmarEliminar) return;
+    const { tipo, id } = confirmarEliminar;
+    const url = tipo === 'funcion' ? `/api/funciones/${id}` : tipo === 'capitulo' ? `/api/capitulos/${id}` : `/api/partidas/${id}`;
+    const res = await fetch(url, { method: 'DELETE' });
+    const data = await res.json();
+    setConfirmarEliminar(null);
+    if (!res.ok) return flash(data.error || 'Error al eliminar', false);
+    flash('Eliminado correctamente.', true);
+    cargar();
+  };
+
+  const funcionesEjercicio = funciones.filter((f) => f.ejercicio === ejercicioSel);
+
   if (loading) return <p className="text-[var(--text-muted)] text-sm">Cargando catálogo...</p>;
 
   return (
@@ -195,6 +260,100 @@ export default function Catalogo({ ejercicioSel }: { ejercicioSel: number }) {
         </div>
         <button type="submit" disabled={savingP || !pCapituloId} className={btnCls}>{savingP ? 'Guardando...' : 'Crear partida'}</button>
       </form>
+
+      <div className={cardCls}>
+        <h3 className="text-sm font-semibold">Funciones existentes ({ejercicioSel})</h3>
+        <div className="space-y-1.5">
+          {funcionesEjercicio.map((f) => (
+            <div key={f.id} className="flex items-center gap-2 text-xs border-b border-[var(--border)] pb-1.5">
+              {editFuncionId === f.id ? (
+                <>
+                  <input className={`${inputCls} py-1`} defaultValue={f.clave} onChange={(e) => setEditFuncionValor((v) => ({ ...v, clave: e.target.value }))} />
+                  <input className={`${inputCls} py-1`} defaultValue={f.nombre} onChange={(e) => setEditFuncionValor((v) => ({ ...v, nombre: e.target.value }))} />
+                  <button onClick={() => guardarEdicionFuncion(f.id)} className="text-emerald-400">✓</button>
+                  <button onClick={() => setEditFuncionId(null)} className="text-[var(--text-muted)]">✕</button>
+                </>
+              ) : (
+                <>
+                  <span className="flex-1 truncate">{f.clave} — {f.nombre}</span>
+                  <button onClick={() => { setEditFuncionId(f.id); setEditFuncionValor({ clave: f.clave, nombre: f.nombre }); }} className="text-[var(--text-muted)] hover:text-[var(--accent)]">✎</button>
+                  <button onClick={() => setConfirmarEliminar({ tipo: 'funcion', id: f.id, nombre: f.nombre })} className="text-[var(--text-muted)] hover:text-rose-400">🗑</button>
+                </>
+              )}
+            </div>
+          ))}
+          {funcionesEjercicio.length === 0 && <p className="text-xs text-[var(--text-muted)]">Sin funciones en este ejercicio.</p>}
+        </div>
+      </div>
+
+      <div className={cardCls}>
+        <h3 className="text-sm font-semibold">Capítulos existentes</h3>
+        <div className="space-y-1.5">
+          {capitulos.filter((c) => funcionesEjercicio.some((f) => f.id === c.funcion_id)).map((c) => (
+            <div key={c.id} className="flex items-center gap-2 text-xs border-b border-[var(--border)] pb-1.5">
+              {editCapituloId === c.id ? (
+                <>
+                  <input className={`${inputCls} py-1`} defaultValue={c.clave} onChange={(e) => setEditCapituloValor((v) => ({ ...v, clave: e.target.value }))} />
+                  <input className={`${inputCls} py-1`} defaultValue={c.nombre} onChange={(e) => setEditCapituloValor((v) => ({ ...v, nombre: e.target.value }))} />
+                  <button onClick={() => guardarEdicionCapitulo(c.id)} className="text-emerald-400">✓</button>
+                  <button onClick={() => setEditCapituloId(null)} className="text-[var(--text-muted)]">✕</button>
+                </>
+              ) : (
+                <>
+                  <span className="flex-1 truncate">{c.funcion_clave} · {c.clave} — {c.nombre}</span>
+                  <button onClick={() => { setEditCapituloId(c.id); setEditCapituloValor({ clave: c.clave, nombre: c.nombre }); }} className="text-[var(--text-muted)] hover:text-[var(--accent)]">✎</button>
+                  <button onClick={() => setConfirmarEliminar({ tipo: 'capitulo', id: c.id, nombre: c.nombre })} className="text-[var(--text-muted)] hover:text-rose-400">🗑</button>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className={cardCls}>
+        <h3 className="text-sm font-semibold">Partidas existentes ({ejercicioSel})</h3>
+        <div className="space-y-1.5 max-h-96 overflow-y-auto">
+          {partidas.map((p) => (
+            <div key={p.id} className="flex items-center gap-2 text-xs border-b border-[var(--border)] pb-1.5">
+              {editPartidaId === p.id ? (
+                <>
+                  <input className={`${inputCls} py-1`} defaultValue={p.partida_clave} onChange={(e) => setEditPartidaValor((v) => ({ ...v, clave: e.target.value }))} />
+                  <input className={`${inputCls} py-1`} defaultValue={p.partida_descripcion} onChange={(e) => setEditPartidaValor((v) => ({ ...v, descripcion: e.target.value }))} />
+                  <button onClick={() => guardarEdicionPartida(p.id)} className="text-emerald-400">✓</button>
+                  <button onClick={() => setEditPartidaId(null)} className="text-[var(--text-muted)]">✕</button>
+                </>
+              ) : (
+                <>
+                  <span className="flex-1 truncate">{p.partida_clave} — {p.partida_descripcion} <span className="text-[var(--text-muted)]">({p.capitulo_clave}, {p.funcion_nombre.slice(0, 25)})</span></span>
+                  <button onClick={() => { setEditPartidaId(p.id); setEditPartidaValor({ clave: p.partida_clave, descripcion: p.partida_descripcion }); }} className="text-[var(--text-muted)] hover:text-[var(--accent)]">✎</button>
+                  <button onClick={() => setConfirmarEliminar({ tipo: 'partida', id: p.id, nombre: `${p.partida_clave} — ${p.partida_descripcion}` })} className="text-[var(--text-muted)] hover:text-rose-400">🗑</button>
+                </>
+              )}
+            </div>
+          ))}
+          {partidas.length === 0 && <p className="text-xs text-[var(--text-muted)]">Sin partidas en este ejercicio.</p>}
+        </div>
+      </div>
+
+      {confirmarEliminar && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4" onClick={() => setConfirmarEliminar(null)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-xl border border-rose-500/40 bg-[var(--surface)] p-6 space-y-4">
+            <div className="flex items-start gap-3">
+              <span className="text-xl">⚠️</span>
+              <div>
+                <h2 className="text-sm font-semibold">Eliminar {confirmarEliminar.tipo}</h2>
+                <p className="text-xs text-[var(--text-muted)] mt-1.5">
+                  "{confirmarEliminar.nombre}" — esta acción no se puede deshacer. Se bloqueará si tiene movimientos u otros datos vinculados.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2 justify-end pt-2">
+              <button onClick={() => setConfirmarEliminar(null)} className="rounded-lg border border-[var(--border)] px-4 py-2 text-sm text-[var(--text-muted)]">Cancelar</button>
+              <button onClick={ejecutarEliminar} className="rounded-lg bg-rose-600 hover:bg-rose-500 px-4 py-2 text-sm font-medium text-white">Eliminar</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

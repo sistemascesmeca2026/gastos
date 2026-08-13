@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Dashboard from '@/components/Dashboard';
 import Catalogo from '@/components/Catalogo';
+import Usuarios from '@/components/Usuarios';
 import Concentrado from '@/components/Concentrado';
 import CambiarPassword from '@/components/CambiarPassword';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -92,6 +93,7 @@ const TABS = [
   { key: 'movimientos', label: 'Movimientos' },
   { key: 'concentrado', label: 'Concentrado oficial (10 col.)' },
   { key: 'catalogo', label: 'Catálogo' },
+  { key: 'usuarios', label: 'Usuarios' },
 ] as const;
 
 type TabKey = typeof TABS[number]['key'];
@@ -185,7 +187,7 @@ export default function Home() {
     });
   };
 
-  const [usuario, setUsuario] = useState<{ nombre: string; username: string } | null>(null);
+  const [usuario, setUsuario] = useState<{ nombre: string; username: string; es_admin?: boolean } | null>(null);
 
   useEffect(() => {
     fetch('/api/auth/me').then((r) => r.json()).then((d) => setUsuario(d.user));
@@ -360,7 +362,7 @@ export default function Home() {
           </div>
 
           <nav className="flex gap-1 mt-4 -mb-px overflow-x-auto">
-            {TABS.map((t) => (
+            {TABS.filter((t) => t.key !== 'usuarios' || usuario?.es_admin).map((t) => (
               <button
                 key={t.key}
                 onClick={() => setTab(t.key)}
@@ -382,6 +384,7 @@ export default function Home() {
 
         {!loading && tab === 'dashboard' && <Dashboard ejercicio={ejercicioSel} />}
         {!loading && tab === 'catalogo' && <Catalogo ejercicioSel={ejercicioSel} />}
+        {!loading && tab === 'usuarios' && usuario?.es_admin && <Usuarios />}
 
         {!loading && tab === 'presupuesto' && (
           <>
