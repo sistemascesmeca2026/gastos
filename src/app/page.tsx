@@ -343,9 +343,21 @@ export default function Home() {
       <header className="border-b border-[var(--border)] bg-[var(--surface)]/60 backdrop-blur sticky top-0 z-10">
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-5">
           <div className="flex items-start justify-between gap-3 flex-wrap">
-            <div>
-              <h1 className="text-lg sm:text-xl font-semibold tracking-tight">CESMECA — Control presupuestal POA</h1>
-              <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-0.5">Ejercicio fiscal {ejercicioSel}</p>
+            <div className="flex items-center gap-3">
+              <div>
+                <h1 className="text-lg sm:text-xl font-semibold tracking-tight">CESMECA — Control presupuestal POA</h1>
+                <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-0.5">Ejercicio fiscal {ejercicioSel}</p>
+              </div>
+              <select
+                value={ejercicioSel}
+                onChange={(e) => setEjercicioSel(Number(e.target.value))}
+                className="sm:hidden text-xs bg-[var(--surface-2)] border border-[var(--border)] rounded px-2 py-1.5 text-[var(--text)]"
+                title="Ejercicio fiscal"
+              >
+                {ejerciciosDisponibles.map((a) => (
+                  <option key={a} value={a}>{a}</option>
+                ))}
+              </select>
             </div>
             <div className="hidden sm:flex items-center gap-2 text-xs text-[var(--text-muted)] pt-1">
               <select
@@ -393,18 +405,6 @@ export default function Home() {
                   <div className="fixed inset-0 z-20" onClick={() => setMostrarMenuMobile(false)} />
                   <div className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-lg z-30 p-3 space-y-3">
                     {usuario && <p className="text-sm font-medium px-1">{usuario.nombre}</p>}
-                    <div>
-                      <label className="block text-[10px] text-[var(--text-muted)] mb-1 px-1">Ejercicio fiscal</label>
-                      <select
-                        value={ejercicioSel}
-                        onChange={(e) => setEjercicioSel(Number(e.target.value))}
-                        className="w-full text-xs bg-[var(--surface-2)] border border-[var(--border)] rounded px-2 py-1.5 text-[var(--text)]"
-                      >
-                        {ejerciciosDisponibles.map((a) => (
-                          <option key={a} value={a}>{a}</option>
-                        ))}
-                      </select>
-                    </div>
                     <div className="flex items-center justify-between px-1">
                       <span className="text-xs text-[var(--text-muted)]">Tema</span>
                       <ThemeToggle />
