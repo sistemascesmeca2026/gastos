@@ -15,6 +15,14 @@ function colorBorde(): string {
   return tema === 'light' ? '#e2e4e9' : '#262b38';
 }
 
+function corteLabel(fechasCorte: Set<string>): string {
+  if (fechasCorte.size === 0) return '';
+  const fechas = Array.from(fechasCorte).sort();
+  const fmt = (f: string) => new Date(f + 'T00:00:00').toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+  if (fechasCorte.size === 1) return `Corte: ${fmt(fechas[0])}`;
+  return `Suma de varios cortes (${fmt(fechas[0])} – ${fmt(fechas[fechas.length - 1])}) — cada programa refleja su corte más reciente disponible`;
+}
+
 type DashboardData = {
   porFuncion: { funcion_nombre: string; ministrado: string; ejercido: string; por_ejercer: string }[];
   porTipo: { tipo_tramite: string; total: string }[];
@@ -27,6 +35,7 @@ type SaldoPartida = {
   descripcion: string;
   funcion_nombre: string;
   por_ejercer: string;
+  fecha_corte: string | null;
 };
 
 const TIPO_LABELS: Record<string, string> = {
@@ -46,6 +55,7 @@ function money(v: string | number) {
 export default function Dashboard({ ejercicio }: { ejercicio: number }) {
   const [data, setData] = useState<DashboardData | null>(null);
   const [sobregiradas, setSobregiradas] = useState<SaldoPartida[]>([]);
+  const [fechasCorte, setFechasCorte] = useState<Set<string>>(new Set());
   const [temaVersion, setTemaVersion] = useState(0);
   const funcRef = useRef<HTMLCanvasElement>(null);
   const tipoRef = useRef<HTMLCanvasElement>(null);
@@ -58,7 +68,10 @@ export default function Dashboard({ ejercicio }: { ejercicio: number }) {
       .then(setData);
     fetch(`/api/saldos?ejercicio=${ejercicio}`)
       .then((r) => r.json())
-      .then((saldos: SaldoPartida[]) => setSobregiradas(saldos.filter((s) => Number(s.por_ejercer) < 0)));
+      .then((saldos: SaldoPartida[]) => {
+        setSobregiradas(saldos.filter((s) => Number(s.por_ejercer) < 0));
+        setFechasCorte(new Set(saldos.filter((s) => s.fecha_corte).map((s) => s.fecha_corte!.toString().slice(0, 10))));
+      });
 
     const onThemeChange = () => setTemaVersion((v) => v + 1);
     window.addEventListener('themechange', onThemeChange);
@@ -152,6 +165,11 @@ export default function Dashboard({ ejercicio }: { ejercicio: number }) {
             ))}
           </ul>
         </div>
+      )}
+      {fechasCorte.size > 0 && (
+        <p className="text-xs text-[var(--text-muted)] mb-3">
+          {fechasCorte.size === 1 ? '📅 ' : '⚠️ '}{corteLabel(fechasCorte)}
+        </p>
       )}
       <div className="grid grid-cols-2 gap-3 mb-6">
         <div className={cardCls}>
