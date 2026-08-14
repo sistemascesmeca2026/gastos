@@ -342,24 +342,12 @@ export default function Home() {
     <div className="min-h-screen">
       <header className="border-b border-[var(--border)] bg-[var(--surface)]/60 backdrop-blur sticky top-0 z-10">
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-5">
-          <div className="flex items-start justify-between gap-3 flex-wrap">
-            <div className="flex items-center gap-3">
-              <div>
-                <h1 className="text-lg sm:text-xl font-semibold tracking-tight">CESMECA — Control presupuestal POA</h1>
-                <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-0.5">Ejercicio fiscal {ejercicioSel}</p>
-              </div>
-              <select
-                value={ejercicioSel}
-                onChange={(e) => setEjercicioSel(Number(e.target.value))}
-                className="sm:hidden text-xs bg-[var(--surface-2)] border border-[var(--border)] rounded px-2 py-1.5 text-[var(--text)]"
-                title="Ejercicio fiscal"
-              >
-                {ejerciciosDisponibles.map((a) => (
-                  <option key={a} value={a}>{a}</option>
-                ))}
-              </select>
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-lg sm:text-xl font-semibold tracking-tight truncate">CESMECA — Control presupuestal POA</h1>
+              <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-0.5 truncate">Ejercicio fiscal {ejercicioSel}</p>
             </div>
-            <div className="hidden sm:flex items-center gap-2 text-xs text-[var(--text-muted)] pt-1">
+            <div className="hidden sm:flex items-center gap-2 text-xs text-[var(--text-muted)] pt-1 flex-shrink-0">
               <select
                 value={ejercicioSel}
                 onChange={(e) => setEjercicioSel(Number(e.target.value))}
@@ -390,7 +378,18 @@ export default function Home() {
               )}
             </div>
 
-            <div className="sm:hidden relative pt-1">
+            <div className="sm:hidden flex items-center gap-2 flex-shrink-0 pt-1">
+              <select
+                value={ejercicioSel}
+                onChange={(e) => setEjercicioSel(Number(e.target.value))}
+                className="text-xs bg-[var(--surface-2)] border border-[var(--border)] rounded px-2 py-1.5 text-[var(--text)]"
+                title="Ejercicio fiscal"
+              >
+                {ejerciciosDisponibles.map((a) => (
+                  <option key={a} value={a}>{a}</option>
+                ))}
+              </select>
+              <div className="relative">
               <button
                 onClick={() => setMostrarMenuMobile((v) => !v)}
                 className="flex items-center gap-1.5 text-xs text-[var(--text-muted)] border border-[var(--border)] rounded-lg px-2.5 py-1.5"
@@ -428,6 +427,7 @@ export default function Home() {
                   </div>
                 </>
               )}
+              </div>
             </div>
           </div>
 
