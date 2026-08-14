@@ -167,6 +167,7 @@ export default function Home() {
   const [filtroDesde, setFiltroDesde] = useState('');
   const [filtroHasta, setFiltroHasta] = useState('');
   const [filtroTexto, setFiltroTexto] = useState('');
+  const [conceptoExpandido, setConceptoExpandido] = useState<number | null>(null);
 
   const funciones = Array.from(
     new Map(partidas.map((p) => [p.funcion_nombre, `${p.funcion_clave} ${p.funcion_nombre}`])).entries()
@@ -760,7 +761,55 @@ export default function Home() {
               {movimientosFiltrados.length === 0 ? (
                 <p className="text-[var(--text-muted)] text-sm">Ningún movimiento coincide con los filtros.</p>
               ) : (
-            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-x-auto">
+            <>
+            {/* Vista de tarjetas — solo móvil */}
+            <div className="sm:hidden space-y-3">
+              {movimientosFiltrados.map((m) => {
+                const tipoInfo = TIPOS.find((t) => t.value === m.tipo_tramite);
+                const estadoInfo = ESTADOS.find((s) => s.value === m.estado);
+                const expandido = conceptoExpandido === m.id;
+                return (
+                  <div key={m.id} className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-[var(--text-muted)]">{m.fecha?.toString().slice(0, 10)}</span>
+                      <span className="text-sm font-semibold">${money(m.monto)}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-wrap mb-2">
+                      {tipoInfo && <Badge label={tipoInfo.label} color={tipoInfo.color} />}
+                      {estadoInfo && <Badge label={estadoInfo.label} color={estadoInfo.color} />}
+                    </div>
+                    <p className="text-xs text-[var(--text-muted)] mb-1">
+                      Partida <span className="text-[var(--text)]">{m.partida_clave}</span>
+                      {m.folio_oficio && <> · Folio <span className="text-[var(--text)]">{m.folio_oficio}</span></>}
+                    </p>
+                    <p className={`text-sm text-[var(--text-muted)] ${expandido ? '' : 'line-clamp-3'}`}>{m.concepto}</p>
+                    {m.concepto && m.concepto.length > 120 && (
+                      <button
+                        onClick={() => setConceptoExpandido(expandido ? null : m.id)}
+                        className="text-xs text-[var(--accent)] mt-1"
+                      >
+                        {expandido ? 'Ver menos' : 'Ver más'}
+                      </button>
+                    )}
+                    <div className="flex items-center justify-between mt-3 pt-2 border-t border-[var(--border)]">
+                      <span className="text-[11px] text-[var(--text-muted)]">
+                        {m.creado_por_nombre || '—'}
+                        {m.actualizado_por_nombre && m.actualizado_por_nombre !== m.creado_por_nombre && (
+                          <span className="opacity-70"> · editó: {m.actualizado_por_nombre}</span>
+                        )}
+                      </span>
+                      <span className="flex gap-3">
+                        <button onClick={() => iniciarEdicionMovimiento(m)} className="text-[var(--text-muted)] hover:text-[var(--accent)] text-xs" title="Editar">✎</button>
+                        <button onClick={() => eliminarMovimiento(m.id)} className="text-[var(--text-muted)] hover:text-rose-400 text-xs" title="Eliminar">🗑</button>
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Vista de tabla — solo escritorio */}
+            <div className="hidden sm:block rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-x-auto">
               <table className="w-full text-sm border-collapse">
                 <thead>
                   <tr className="text-left text-[var(--text-muted)] border-b border-[var(--border)] text-xs">
@@ -804,6 +853,7 @@ export default function Home() {
                 </tbody>
               </table>
             </div>
+            </>
               )}
             </>
           )
