@@ -341,12 +341,12 @@ export default function Home() {
     <div className="min-h-screen">
       <header className="border-b border-[var(--border)] bg-[var(--surface)]/60 backdrop-blur sticky top-0 z-10">
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-5">
-          <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
             <div>
               <h1 className="text-lg sm:text-xl font-semibold tracking-tight">CESMECA — Control presupuestal POA</h1>
               <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-0.5">Ejercicio fiscal {ejercicioSel}</p>
             </div>
-            <div className="flex items-center gap-2 text-xs text-[var(--text-muted)] whitespace-nowrap pt-1">
+            <div className="flex items-center gap-2 text-xs text-[var(--text-muted)] flex-wrap pt-1">
               <select
                 value={ejercicioSel}
                 onChange={(e) => setEjercicioSel(Number(e.target.value))}

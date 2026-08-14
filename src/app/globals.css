@@ -46,6 +46,7 @@ body {
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   transition: background-color 0.15s ease, color 0.15s ease;
+  overflow-x: hidden;
 }
 
 ::selection {
