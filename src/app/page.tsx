@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Dashboard from '@/components/Dashboard';
 import Catalogo from '@/components/Catalogo';
 import Usuarios from '@/components/Usuarios';
+import Transferencias from '@/components/Transferencias';
 import Concentrado from '@/components/Concentrado';
 import CambiarPassword from '@/components/CambiarPassword';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -104,6 +105,7 @@ const TABS = [
   { key: 'captura', label: 'Captura de oficios' },
   { key: 'presupuesto', label: 'Presupuesto (resumen)' },
   { key: 'movimientos', label: 'Movimientos' },
+  { key: 'transferencias', label: 'Transferencias' },
   { key: 'concentrado', label: 'Concentrado oficial (10 col.)' },
   { key: 'catalogo', label: 'Catálogo' },
   { key: 'usuarios', label: 'Usuarios' },
@@ -518,6 +520,7 @@ export default function Home() {
                                 <th className="py-1.5 pr-3 font-medium text-right">Ministrado</th>
                                 <th className="py-1.5 pr-3 font-medium text-right">Ejercido</th>
                                 <th className="py-1.5 pr-3 font-medium text-right">Comprometido</th>
+                                <th className="py-1.5 pr-3 font-medium text-right">Retirado</th>
                                 <th className="py-1.5 pr-3 font-medium text-right">Por ejercer</th>
                                 <th className="py-1.5 font-medium text-right w-8"></th>
                               </tr>
@@ -550,6 +553,7 @@ export default function Home() {
                                   </td>
                                   <td className="py-1.5 pr-3 text-right">${money(p.ejercido)}</td>
                                   <td className="py-1.5 pr-3 text-right">${money(p.comprometido)}</td>
+                                  <td className="py-1.5 pr-3 text-right text-orange-400">${money(p.retirado)}</td>
                                   <td className={`py-1.5 pr-3 text-right font-medium ${Number(p.por_ejercer) < 0 ? 'text-rose-400' : ''}`}>
                                     ${money(p.por_ejercer)}
                                   </td>
@@ -584,6 +588,7 @@ export default function Home() {
         )}
 
         {!loading && tab === 'concentrado' && <Concentrado ejercicio={ejercicioSel} />}
+        {!loading && tab === 'transferencias' && <Transferencias ejercicio={ejercicioSel} />}
 
         {!loading && tab === 'captura' && (
           <form onSubmit={handleSubmit} className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 sm:p-6 space-y-4 max-w-[1200px] mx-auto">

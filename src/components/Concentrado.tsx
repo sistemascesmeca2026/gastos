@@ -22,6 +22,7 @@ type SaldoCompleto = {
   pagado: string;
   por_ejercer: string;
   disponible: string;
+  retirado: string;
 };
 
 type FuncionInfo = { id: number; subtotal_oficial: string | null };
@@ -37,9 +38,10 @@ const CAMPOS_EDITABLES: { key: string; label: string }[] = [
   { key: 'disponible', label: 'Disponible' },
 ];
 
-const CAMPOS_CALCULADOS: { key: 'comprometido' | 'ejercido' | 'por_ejercer'; label: string }[] = [
+const CAMPOS_CALCULADOS: { key: 'comprometido' | 'ejercido' | 'por_ejercer' | 'retirado'; label: string }[] = [
   { key: 'comprometido', label: 'Comprometido' },
   { key: 'ejercido', label: 'Ejercido' },
+  { key: 'retirado', label: 'Retirado' },
   { key: 'por_ejercer', label: 'Por ejercer' },
 ];
 
