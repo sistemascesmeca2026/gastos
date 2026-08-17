@@ -86,10 +86,14 @@ function ImprimirContenido() {
                   <th style={{ textAlign: 'right', padding: '4px' }}>Retirado</th>
                   <th style={{ textAlign: 'right', padding: '4px' }}>Comprometido</th>
                   <th style={{ textAlign: 'right', padding: '4px' }}>Por ejercer</th>
+                  <th style={{ textAlign: 'center', padding: '4px' }}>Verif.</th>
                 </tr>
               </thead>
               <tbody>
-                {filas.map((f) => (
+                {filas.map((f) => {
+                  const sumaControl = Number(f.ejercido) + Number(f.retirado) + Number(f.comprometido) + Number(f.por_ejercer);
+                  const coincide = Math.abs(sumaControl - Number(f.ministrado)) < 0.5;
+                  return (
                   <tr key={f.partida_id} style={{ borderBottom: '1px solid #eee' }}>
                     <td style={{ padding: '3px 4px' }}>{f.clave}</td>
                     <td style={{ padding: '3px 4px' }}>{f.descripcion}</td>
@@ -98,8 +102,10 @@ function ImprimirContenido() {
                     <td style={{ padding: '3px 4px', textAlign: 'right' }}>${money(f.retirado)}</td>
                     <td style={{ padding: '3px 4px', textAlign: 'right' }}>${money(f.comprometido)}</td>
                     <td style={{ padding: '3px 4px', textAlign: 'right' }}>${money(f.por_ejercer)}</td>
+                    <td style={{ padding: '3px 4px', textAlign: 'center', color: coincide ? '#16a34a' : '#dc2626', fontWeight: 'bold' }}>{coincide ? '✓' : '⚠'}</td>
                   </tr>
-                ))}
+                  );
+                })}
                 <tr style={{ fontWeight: 'bold', borderTop: '1px solid #999' }}>
                   <td colSpan={2} style={{ padding: '4px' }}>TOTAL</td>
                   <td style={{ padding: '4px', textAlign: 'right' }}>${money(totMin)}</td>

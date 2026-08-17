@@ -68,7 +68,7 @@ export async function GET(req: Request) {
       sheet.getCell('A4').alignment = { horizontal: 'center' };
 
       const headerRow = sheet.getRow(6);
-      headerRow.values = ['Partida', 'Descripción', 'Recurso', 'Ejercido', 'Retirado', 'Comprometido', 'Por ejercer', 'Observaciones'];
+      headerRow.values = ['Partida', 'Descripción', 'Recurso', 'Ejercido', 'Retirado', 'Comprometido', 'Por ejercer', 'Verificación', 'Observaciones'];
       headerRow.eachCell((cell) => {
         cell.font = { bold: true };
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9D2E9' } };
@@ -78,6 +78,8 @@ export async function GET(req: Request) {
       let r = 7;
       for (const f of filas) {
         const row = sheet.getRow(r);
+        const sumaControl = Number(f.ejercido) + Number(f.retirado) + Number(f.comprometido) + Number(f.por_ejercer);
+        const coincide = Math.abs(sumaControl - Number(f.ministrado)) < 0.5;
         row.values = [
           f.clave,
           f.descripcion,
@@ -86,10 +88,13 @@ export async function GET(req: Request) {
           Number(f.retirado) || null,
           Number(f.comprometido),
           Number(f.por_ejercer),
+          coincide ? '✓' : '⚠',
           (obsPorPartida[f.partida_id] || []).join('\n'),
         ];
         for (let col = 3; col <= 7; col++) row.getCell(col).numFmt = '$#,##0.00';
-        row.getCell(8).alignment = { wrapText: true, vertical: 'top' };
+        row.getCell(8).alignment = { horizontal: 'center' };
+        row.getCell(8).font = { color: { argb: coincide ? 'FF16A34A' : 'FFDC2626' }, bold: true };
+        row.getCell(9).alignment = { wrapText: true, vertical: 'top' };
         r++;
       }
 
@@ -102,12 +107,13 @@ export async function GET(req: Request) {
         filas.reduce((a, f) => a + Number(f.comprometido), 0),
         filas.reduce((a, f) => a + Number(f.por_ejercer), 0),
         '',
+        '',
       ];
       totalRow.eachCell((cell) => { cell.font = { bold: true }; });
       for (let col = 3; col <= 7; col++) totalRow.getCell(col).numFmt = '$#,##0.00';
 
       sheet.columns = [
-        { width: 10 }, { width: 42 }, { width: 14 }, { width: 12 }, { width: 12 }, { width: 14 }, { width: 14 }, { width: 50 },
+        { width: 10 }, { width: 42 }, { width: 14 }, { width: 12 }, { width: 12 }, { width: 14 }, { width: 14 }, { width: 12 }, { width: 50 },
       ];
     }
 
