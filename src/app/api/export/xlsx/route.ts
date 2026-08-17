@@ -2,16 +2,6 @@ import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import ExcelJS from 'exceljs';
 
-const TIPO_LABELS: Record<string, string> = {
-  solicitud_recursos: 'Solicitud de recursos',
-  comprobacion_viaticos: 'Comprobación de viáticos',
-  comprobacion_gasto: 'Comprobación de gasto',
-  reembolso: 'Reembolso',
-  retiro_institucional: 'Retiro institucional',
-  transferencia_entrada: 'Transferencia (entrada)',
-  transferencia_salida: 'Transferencia (salida)',
-};
-
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -57,28 +47,28 @@ export async function GET(req: Request) {
       const nombreHoja = funcion.replace(/PROGRAMA\s*(DE|PARA)?\s*/i, '').slice(0, 31) || 'Función';
       const sheet = workbook.addWorksheet(nombreHoja);
 
-      sheet.mergeCells('A1:F1');
+      sheet.mergeCells('A1:G1');
       sheet.getCell('A1').value = 'UNIVERSIDAD DE CIENCIAS Y ARTES DE CHIAPAS';
       sheet.getCell('A1').font = { bold: true, size: 12 };
       sheet.getCell('A1').alignment = { horizontal: 'center' };
 
-      sheet.mergeCells('A2:F2');
+      sheet.mergeCells('A2:G2');
       sheet.getCell('A2').value = 'CENTRO DE ESTUDIOS SUPERIORES DE MÉXICO Y CENTROAMÉRICA';
       sheet.getCell('A2').font = { bold: true, italic: true, size: 11 };
       sheet.getCell('A2').alignment = { horizontal: 'center' };
 
-      sheet.mergeCells('A3:F3');
+      sheet.mergeCells('A3:G3');
       sheet.getCell('A3').value = 'PROGRAMA OPERATIVO ANUAL 2026';
       sheet.getCell('A3').font = { bold: true, italic: true, size: 11 };
       sheet.getCell('A3').alignment = { horizontal: 'center' };
 
-      sheet.mergeCells('A4:F4');
+      sheet.mergeCells('A4:G4');
       sheet.getCell('A4').value = funcion;
       sheet.getCell('A4').font = { size: 10 };
       sheet.getCell('A4').alignment = { horizontal: 'center' };
 
       const headerRow = sheet.getRow(6);
-      headerRow.values = ['Partida', 'Descripción', 'Recurso (Ministrado)', 'Ejercido', 'Comprometido', 'Por ejercer', 'Observaciones'];
+      headerRow.values = ['Partida', 'Descripción', 'Recurso', 'Ejercido', 'Retirado', 'Comprometido', 'Por ejercer', 'Observaciones'];
       headerRow.eachCell((cell) => {
         cell.font = { bold: true };
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9D2E9' } };
@@ -93,15 +83,13 @@ export async function GET(req: Request) {
           f.descripcion,
           Number(f.ministrado),
           Number(f.ejercido),
+          Number(f.retirado) || null,
           Number(f.comprometido),
           Number(f.por_ejercer),
           (obsPorPartida[f.partida_id] || []).join('\n'),
         ];
-        row.getCell(3).numFmt = '$#,##0.00';
-        row.getCell(4).numFmt = '$#,##0.00';
-        row.getCell(5).numFmt = '$#,##0.00';
-        row.getCell(6).numFmt = '$#,##0.00';
-        row.getCell(7).alignment = { wrapText: true, vertical: 'top' };
+        for (let col = 3; col <= 7; col++) row.getCell(col).numFmt = '$#,##0.00';
+        row.getCell(8).alignment = { wrapText: true, vertical: 'top' };
         r++;
       }
 
@@ -110,18 +98,16 @@ export async function GET(req: Request) {
         '', 'TOTAL',
         filas.reduce((a, f) => a + Number(f.ministrado), 0),
         filas.reduce((a, f) => a + Number(f.ejercido), 0),
+        filas.reduce((a, f) => a + Number(f.retirado), 0),
         filas.reduce((a, f) => a + Number(f.comprometido), 0),
         filas.reduce((a, f) => a + Number(f.por_ejercer), 0),
         '',
       ];
       totalRow.eachCell((cell) => { cell.font = { bold: true }; });
-      totalRow.getCell(3).numFmt = '$#,##0.00';
-      totalRow.getCell(4).numFmt = '$#,##0.00';
-      totalRow.getCell(5).numFmt = '$#,##0.00';
-      totalRow.getCell(6).numFmt = '$#,##0.00';
+      for (let col = 3; col <= 7; col++) totalRow.getCell(col).numFmt = '$#,##0.00';
 
       sheet.columns = [
-        { width: 10 }, { width: 42 }, { width: 16 }, { width: 14 }, { width: 14 }, { width: 14 }, { width: 50 },
+        { width: 10 }, { width: 42 }, { width: 14 }, { width: 12 }, { width: 12 }, { width: 14 }, { width: 14 }, { width: 50 },
       ];
     }
 

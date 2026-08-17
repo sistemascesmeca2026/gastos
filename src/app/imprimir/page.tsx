@@ -12,6 +12,7 @@ type Saldo = {
   funcion_nombre: string;
   ministrado: string;
   ejercido: string;
+  retirado: string;
   comprometido: string;
   por_ejercer: string;
 };
@@ -68,6 +69,7 @@ function ImprimirContenido() {
       {Object.entries(grupos).map(([funcion, filas]) => {
         const totMin = filas.reduce((a, f) => a + Number(f.ministrado), 0);
         const totEj = filas.reduce((a, f) => a + Number(f.ejercido), 0);
+        const totRet = filas.reduce((a, f) => a + Number(f.retirado), 0);
         const totComp = filas.reduce((a, f) => a + Number(f.comprometido), 0);
         const totPorEj = filas.reduce((a, f) => a + Number(f.por_ejercer), 0);
 
@@ -81,6 +83,7 @@ function ImprimirContenido() {
                   <th style={{ textAlign: 'left', padding: '4px' }}>Descripción</th>
                   <th style={{ textAlign: 'right', padding: '4px' }}>Recurso</th>
                   <th style={{ textAlign: 'right', padding: '4px' }}>Ejercido</th>
+                  <th style={{ textAlign: 'right', padding: '4px' }}>Retirado</th>
                   <th style={{ textAlign: 'right', padding: '4px' }}>Comprometido</th>
                   <th style={{ textAlign: 'right', padding: '4px' }}>Por ejercer</th>
                 </tr>
@@ -92,6 +95,7 @@ function ImprimirContenido() {
                     <td style={{ padding: '3px 4px' }}>{f.descripcion}</td>
                     <td style={{ padding: '3px 4px', textAlign: 'right' }}>${money(f.ministrado)}</td>
                     <td style={{ padding: '3px 4px', textAlign: 'right' }}>${money(f.ejercido)}</td>
+                    <td style={{ padding: '3px 4px', textAlign: 'right' }}>${money(f.retirado)}</td>
                     <td style={{ padding: '3px 4px', textAlign: 'right' }}>${money(f.comprometido)}</td>
                     <td style={{ padding: '3px 4px', textAlign: 'right' }}>${money(f.por_ejercer)}</td>
                   </tr>
@@ -100,6 +104,7 @@ function ImprimirContenido() {
                   <td colSpan={2} style={{ padding: '4px' }}>TOTAL</td>
                   <td style={{ padding: '4px', textAlign: 'right' }}>${money(totMin)}</td>
                   <td style={{ padding: '4px', textAlign: 'right' }}>${money(totEj)}</td>
+                  <td style={{ padding: '4px', textAlign: 'right' }}>${money(totRet)}</td>
                   <td style={{ padding: '4px', textAlign: 'right' }}>${money(totComp)}</td>
                   <td style={{ padding: '4px', textAlign: 'right' }}>${money(totPorEj)}</td>
                 </tr>
