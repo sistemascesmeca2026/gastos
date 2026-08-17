@@ -5,6 +5,7 @@ import Dashboard from '@/components/Dashboard';
 import Catalogo from '@/components/Catalogo';
 import Usuarios from '@/components/Usuarios';
 import Transferencias from '@/components/Transferencias';
+import Retirado from '@/components/Retirado';
 import Concentrado from '@/components/Concentrado';
 import CambiarPassword from '@/components/CambiarPassword';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -105,9 +106,10 @@ const TABS = [
   { key: 'captura', label: 'Captura de oficios' },
   { key: 'presupuesto', label: 'Presupuesto (resumen)' },
   { key: 'movimientos', label: 'Movimientos' },
-  { key: 'transferencias', label: 'Transferencias' },
   { key: 'concentrado', label: 'Concentrado oficial (10 col.)' },
   { key: 'catalogo', label: 'Catálogo' },
+  { key: 'transferencias', label: 'Transferencias' },
+  { key: 'retirado', label: 'Retirado' },
   { key: 'usuarios', label: 'Usuarios' },
 ] as const;
 
@@ -589,6 +591,7 @@ export default function Home() {
 
         {!loading && tab === 'concentrado' && <Concentrado ejercicio={ejercicioSel} />}
         {!loading && tab === 'transferencias' && <Transferencias ejercicio={ejercicioSel} />}
+        {!loading && tab === 'retirado' && <Retirado ejercicio={ejercicioSel} />}
 
         {!loading && tab === 'captura' && (
           <form onSubmit={handleSubmit} className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 sm:p-6 space-y-4 max-w-[1200px] mx-auto">
