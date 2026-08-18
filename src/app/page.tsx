@@ -194,6 +194,56 @@ export default function Home() {
     fetch('/api/ejercicios').then((r) => r.json()).then(setEjerciciosDisponibles);
   }, []);
 
+  type CapituloCat = { id: number; clave: string; nombre: string; funcion_id: number; funcion_nombre: string };
+  const [capitulosCatalogo, setCapitulosCatalogo] = useState<CapituloCat[]>([]);
+  useEffect(() => {
+    fetch('/api/capitulos').then((r) => r.json()).then(setCapitulosCatalogo);
+  }, []);
+
+  const [mostrarNuevaPartida, setMostrarNuevaPartida] = useState(false);
+  const [nuevaPartidaClave, setNuevaPartidaClave] = useState('');
+  const [nuevaPartidaDescripcion, setNuevaPartidaDescripcion] = useState('');
+  const [nuevaPartidaError, setNuevaPartidaError] = useState('');
+  const [guardandoPartida, setGuardandoPartida] = useState(false);
+
+  const capituloIdSel = capitulosCatalogo.find(
+    (c) => c.funcion_nombre === funcionSel && `${c.clave} · ${c.nombre}` === capituloSel
+  )?.id;
+
+  const crearPartidaNueva = async () => {
+    setNuevaPartidaError('');
+    if (!nuevaPartidaClave.trim() || !nuevaPartidaDescripcion.trim()) {
+      setNuevaPartidaError('Clave y descripción son obligatorias');
+      return;
+    }
+    if (!capituloIdSel) {
+      setNuevaPartidaError('No se pudo identificar el capítulo seleccionado. Verifica función y capítulo.');
+      return;
+    }
+    setGuardandoPartida(true);
+    try {
+      const res = await fetch('/api/partidas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ capitulo_id: capituloIdSel, clave: nuevaPartidaClave.trim(), descripcion: nuevaPartidaDescripcion.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setNuevaPartidaError(data.error || 'No se pudo crear la partida');
+        return;
+      }
+      await cargarTodo();
+      setForm((f) => ({ ...f, partida_id: String(data.id) }));
+      setMostrarNuevaPartida(false);
+      setNuevaPartidaClave('');
+      setNuevaPartidaDescripcion('');
+    } catch {
+      setNuevaPartidaError('Error de conexión al crear la partida');
+    } finally {
+      setGuardandoPartida(false);
+    }
+  };
+
   const cargarTodo = () => {
     return Promise.all([
       fetch(`/api/partidas?ejercicio=${ejercicioSel}`).then((r) => r.json()),
@@ -646,13 +696,64 @@ export default function Home() {
                 className={inputCls}
                 value={form.partida_id}
                 disabled={!capituloSel}
-                onChange={(e) => setForm({ ...form, partida_id: e.target.value })}
+                onChange={(e) => {
+                  if (e.target.value === '__nueva__') {
+                    setNuevaPartidaError('');
+                    setMostrarNuevaPartida(true);
+                    return;
+                  }
+                  setForm({ ...form, partida_id: e.target.value });
+                }}
               >
                 <option value="">{capituloSel ? 'Selecciona una partida...' : 'Primero elige un capítulo'}</option>
                 {partidasFiltradas.map((p) => (
                   <option key={p.id} value={p.id}>{p.partida_clave} - {p.partida_descripcion}</option>
                 ))}
+                {capituloSel && <option value="__nueva__">+ Agregar partida nueva…</option>}
               </select>
+              {mostrarNuevaPartida && (
+                <div className="mt-2 rounded-lg border border-[var(--accent)]/40 bg-[var(--surface-2)] p-3 space-y-2">
+                  <p className="text-xs text-[var(--text-muted)]">
+                    Nueva partida en <span className="text-[var(--text)]">{capituloSel}</span> ({funcionSel})
+                  </p>
+                  <div>
+                    <label className={labelCls}>Clave (ej. 21506)</label>
+                    <input
+                      className={inputCls}
+                      value={nuevaPartidaClave}
+                      onChange={(e) => setNuevaPartidaClave(e.target.value)}
+                      placeholder="21506"
+                    />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Descripción</label>
+                    <input
+                      className={inputCls}
+                      value={nuevaPartidaDescripcion}
+                      onChange={(e) => setNuevaPartidaDescripcion(e.target.value)}
+                      placeholder="Materiales y útiles de..."
+                    />
+                  </div>
+                  {nuevaPartidaError && <p className="text-xs text-rose-400">{nuevaPartidaError}</p>}
+                  <div className="flex gap-2 justify-end">
+                    <button
+                      type="button"
+                      className="text-xs text-[var(--text-muted)] hover:text-[var(--text)] px-2 py-1"
+                      onClick={() => { setMostrarNuevaPartida(false); setNuevaPartidaError(''); }}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      disabled={guardandoPartida}
+                      className="text-xs bg-[var(--accent)] text-white rounded-md px-3 py-1.5 disabled:opacity-50"
+                      onClick={crearPartidaNueva}
+                    >
+                      {guardandoPartida ? 'Guardando...' : 'Crear y usar esta partida'}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">

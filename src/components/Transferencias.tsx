@@ -37,7 +37,7 @@ const inputCls = 'w-full rounded-lg border border-[var(--border)] bg-[var(--surf
 const labelCls = 'block text-xs text-[var(--text-muted)] mb-1.5';
 
 function SelectorPartida({
-  partidas, funcionSel, capituloSel, partidaId, onFuncion, onCapitulo, onPartida,
+  partidas, funcionSel, capituloSel, partidaId, onFuncion, onCapitulo, onPartida, onNuevaPartida,
 }: {
   partidas: Partida[];
   funcionSel: string;
@@ -46,6 +46,7 @@ function SelectorPartida({
   onFuncion: (v: string) => void;
   onCapitulo: (v: string) => void;
   onPartida: (v: string) => void;
+  onNuevaPartida: () => void;
 }) {
   const funciones = Array.from(new Map(partidas.map((p) => [p.funcion_nombre, `${p.funcion_clave} ${p.funcion_nombre}`])).entries()).sort((a, b) => a[1].localeCompare(b[1]));
   const capitulos = Array.from(new Set(partidas.filter((p) => p.funcion_nombre === funcionSel).map((p) => `${p.capitulo_clave} · ${p.capitulo_nombre}`))).sort();
@@ -61,10 +62,47 @@ function SelectorPartida({
         <option value="">{funcionSel ? 'Capítulo...' : 'Primero elige función'}</option>
         {capitulos.map((c) => <option key={c} value={c}>{c}</option>)}
       </select>
-      <select className={inputCls} value={partidaId} disabled={!capituloSel} onChange={(e) => onPartida(e.target.value)}>
+      <select
+        className={inputCls}
+        value={partidaId}
+        disabled={!capituloSel}
+        onChange={(e) => (e.target.value === '__nueva__' ? onNuevaPartida() : onPartida(e.target.value))}
+      >
         <option value="">{capituloSel ? 'Partida...' : 'Primero elige capítulo'}</option>
         {filtradas.map((p) => <option key={p.id} value={p.id}>{p.partida_clave} - {p.partida_descripcion}</option>)}
+        {capituloSel && <option value="__nueva__">+ Agregar partida nueva…</option>}
       </select>
+    </div>
+  );
+}
+
+function NuevaPartidaForm({
+  etiqueta, clave, setClave, descripcion, setDescripcion, error, guardando, onCancelar, onGuardar,
+}: {
+  etiqueta: string;
+  clave: string; setClave: (v: string) => void;
+  descripcion: string; setDescripcion: (v: string) => void;
+  error: string; guardando: boolean;
+  onCancelar: () => void; onGuardar: () => void;
+}) {
+  return (
+    <div className="mt-2 rounded-lg border border-[var(--accent)]/40 bg-[var(--surface-2)] p-3 space-y-2">
+      <p className="text-xs text-[var(--text-muted)]">Nueva partida en <span className="text-[var(--text)]">{etiqueta}</span></p>
+      <div>
+        <label className={labelCls}>Clave (ej. 21506)</label>
+        <input className={inputCls} value={clave} onChange={(e) => setClave(e.target.value)} placeholder="21506" />
+      </div>
+      <div>
+        <label className={labelCls}>Descripción</label>
+        <input className={inputCls} value={descripcion} onChange={(e) => setDescripcion(e.target.value)} placeholder="Materiales y útiles de..." />
+      </div>
+      {error && <p className="text-xs text-rose-400">{error}</p>}
+      <div className="flex gap-2 justify-end">
+        <button type="button" className="text-xs text-[var(--text-muted)] hover:text-[var(--text)] px-2 py-1" onClick={onCancelar}>Cancelar</button>
+        <button type="button" disabled={guardando} className="text-xs bg-[var(--accent)] text-white rounded-md px-3 py-1.5 disabled:opacity-50" onClick={onGuardar}>
+          {guardando ? 'Guardando...' : 'Crear y usar esta partida'}
+        </button>
+      </div>
     </div>
   );
 }
@@ -88,14 +126,64 @@ export default function Transferencias({ ejercicio }: { ejercicio: number }) {
   const [concepto, setConcepto] = useState('');
   const [folio, setFolio] = useState('');
 
+  type CapituloCat = { id: number; clave: string; nombre: string; funcion_id: number; funcion_nombre: string };
+  const [capitulosCatalogo, setCapitulosCatalogo] = useState<CapituloCat[]>([]);
+  const [nuevaPartidaTarget, setNuevaPartidaTarget] = useState<'origen' | 'destino' | null>(null);
+  const [nuevaPartidaClave, setNuevaPartidaClave] = useState('');
+  const [nuevaPartidaDescripcion, setNuevaPartidaDescripcion] = useState('');
+  const [nuevaPartidaError, setNuevaPartidaError] = useState('');
+  const [guardandoPartida, setGuardandoPartida] = useState(false);
+
   const cargar = () => {
     return Promise.all([
       fetch(`/api/partidas?ejercicio=${ejercicio}`).then((r) => r.json()),
       fetch(`/api/transferencias?ejercicio=${ejercicio}`).then((r) => r.json()),
-    ]).then(([p, t]) => {
+      fetch(`/api/capitulos`).then((r) => r.json()),
+    ]).then(([p, t, c]) => {
       setPartidas(p);
       setPares(t);
+      setCapitulosCatalogo(c);
     });
+  };
+
+  const crearPartidaNueva = async () => {
+    setNuevaPartidaError('');
+    if (!nuevaPartidaClave.trim() || !nuevaPartidaDescripcion.trim()) {
+      setNuevaPartidaError('Clave y descripción son obligatorias');
+      return;
+    }
+    const funcionSel = nuevaPartidaTarget === 'origen' ? origenFuncion : destinoFuncion;
+    const capituloSel = nuevaPartidaTarget === 'origen' ? origenCapitulo : destinoCapitulo;
+    const capituloId = capitulosCatalogo.find(
+      (c) => c.funcion_nombre === funcionSel && `${c.clave} · ${c.nombre}` === capituloSel
+    )?.id;
+    if (!capituloId) {
+      setNuevaPartidaError('No se pudo identificar el capítulo seleccionado.');
+      return;
+    }
+    setGuardandoPartida(true);
+    try {
+      const res = await fetch('/api/partidas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ capitulo_id: capituloId, clave: nuevaPartidaClave.trim(), descripcion: nuevaPartidaDescripcion.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setNuevaPartidaError(data.error || 'No se pudo crear la partida');
+        return;
+      }
+      await cargar();
+      if (nuevaPartidaTarget === 'origen') setOrigenPartidaId(String(data.id));
+      else setDestinoPartidaId(String(data.id));
+      setNuevaPartidaTarget(null);
+      setNuevaPartidaClave('');
+      setNuevaPartidaDescripcion('');
+    } catch {
+      setNuevaPartidaError('Error de conexión al crear la partida');
+    } finally {
+      setGuardandoPartida(false);
+    }
   };
 
   useEffect(() => {
@@ -165,7 +253,18 @@ export default function Transferencias({ ejercicio }: { ejercicio: number }) {
               onFuncion={(v) => { setOrigenFuncion(v); setOrigenCapitulo(''); setOrigenPartidaId(''); }}
               onCapitulo={(v) => { setOrigenCapitulo(v); setOrigenPartidaId(''); }}
               onPartida={setOrigenPartidaId}
+              onNuevaPartida={() => { setNuevaPartidaError(''); setNuevaPartidaTarget('origen'); }}
             />
+            {nuevaPartidaTarget === 'origen' && (
+              <NuevaPartidaForm
+                etiqueta={`${origenCapitulo} (${origenFuncion})`}
+                clave={nuevaPartidaClave} setClave={setNuevaPartidaClave}
+                descripcion={nuevaPartidaDescripcion} setDescripcion={setNuevaPartidaDescripcion}
+                error={nuevaPartidaError} guardando={guardandoPartida}
+                onCancelar={() => setNuevaPartidaTarget(null)}
+                onGuardar={crearPartidaNueva}
+              />
+            )}
           </div>
           <div>
             <label className={labelCls}>Partida de destino (a dónde va)</label>
@@ -175,7 +274,18 @@ export default function Transferencias({ ejercicio }: { ejercicio: number }) {
               onFuncion={(v) => { setDestinoFuncion(v); setDestinoCapitulo(''); setDestinoPartidaId(''); }}
               onCapitulo={(v) => { setDestinoCapitulo(v); setDestinoPartidaId(''); }}
               onPartida={setDestinoPartidaId}
+              onNuevaPartida={() => { setNuevaPartidaError(''); setNuevaPartidaTarget('destino'); }}
             />
+            {nuevaPartidaTarget === 'destino' && (
+              <NuevaPartidaForm
+                etiqueta={`${destinoCapitulo} (${destinoFuncion})`}
+                clave={nuevaPartidaClave} setClave={setNuevaPartidaClave}
+                descripcion={nuevaPartidaDescripcion} setDescripcion={setNuevaPartidaDescripcion}
+                error={nuevaPartidaError} guardando={guardandoPartida}
+                onCancelar={() => setNuevaPartidaTarget(null)}
+                onGuardar={crearPartidaNueva}
+              />
+            )}
           </div>
         </div>
 
