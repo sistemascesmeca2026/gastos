@@ -2,17 +2,30 @@
 
 import { useEffect, useState } from 'react';
 
-type Movimiento = {
+type Partida = {
   id: number;
-  folio_oficio: string | null;
-  fecha: string;
-  tipo_tramite: string;
-  estado: string;
-  monto: string;
-  concepto: string;
   partida_clave: string;
   partida_descripcion: string;
+  capitulo_clave: string;
+  capitulo_nombre: string;
+  funcion_clave: string;
   funcion_nombre: string;
+};
+
+type TransferenciaPar = {
+  salida_id: number;
+  grupo_transferencia: string;
+  fecha: string;
+  monto: string;
+  concepto: string;
+  folio_oficio: string | null;
+  estado: string;
+  origen_clave: string;
+  origen_descripcion: string;
+  origen_funcion: string;
+  destino_clave: string;
+  destino_descripcion: string;
+  destino_funcion: string;
   creado_por_nombre: string | null;
 };
 
@@ -20,79 +33,217 @@ function money(v: string | number) {
   return Number(v).toLocaleString('es-MX', { minimumFractionDigits: 2 });
 }
 
+const inputCls = 'w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/50 disabled:opacity-40';
+const labelCls = 'block text-xs text-[var(--text-muted)] mb-1.5';
+
+function SelectorPartida({
+  partidas, funcionSel, capituloSel, partidaId, onFuncion, onCapitulo, onPartida,
+}: {
+  partidas: Partida[];
+  funcionSel: string;
+  capituloSel: string;
+  partidaId: string;
+  onFuncion: (v: string) => void;
+  onCapitulo: (v: string) => void;
+  onPartida: (v: string) => void;
+}) {
+  const funciones = Array.from(new Map(partidas.map((p) => [p.funcion_nombre, `${p.funcion_clave} ${p.funcion_nombre}`])).entries()).sort((a, b) => a[1].localeCompare(b[1]));
+  const capitulos = Array.from(new Set(partidas.filter((p) => p.funcion_nombre === funcionSel).map((p) => `${p.capitulo_clave} · ${p.capitulo_nombre}`))).sort();
+  const filtradas = partidas.filter((p) => p.funcion_nombre === funcionSel && `${p.capitulo_clave} · ${p.capitulo_nombre}` === capituloSel);
+
+  return (
+    <div className="space-y-2">
+      <select className={inputCls} value={funcionSel} onChange={(e) => onFuncion(e.target.value)}>
+        <option value="">Función...</option>
+        {funciones.map(([nombre, etiqueta]) => <option key={nombre} value={nombre}>{etiqueta}</option>)}
+      </select>
+      <select className={inputCls} value={capituloSel} disabled={!funcionSel} onChange={(e) => onCapitulo(e.target.value)}>
+        <option value="">{funcionSel ? 'Capítulo...' : 'Primero elige función'}</option>
+        {capitulos.map((c) => <option key={c} value={c}>{c}</option>)}
+      </select>
+      <select className={inputCls} value={partidaId} disabled={!capituloSel} onChange={(e) => onPartida(e.target.value)}>
+        <option value="">{capituloSel ? 'Partida...' : 'Primero elige capítulo'}</option>
+        {filtradas.map((p) => <option key={p.id} value={p.id}>{p.partida_clave} - {p.partida_descripcion}</option>)}
+      </select>
+    </div>
+  );
+}
+
 export default function Transferencias({ ejercicio }: { ejercicio: number }) {
-  const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
+  const [partidas, setPartidas] = useState<Partida[]>([]);
+  const [pares, setPares] = useState<TransferenciaPar[]>([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [ok, setOk] = useState('');
+
+  const [origenFuncion, setOrigenFuncion] = useState('');
+  const [origenCapitulo, setOrigenCapitulo] = useState('');
+  const [origenPartidaId, setOrigenPartidaId] = useState('');
+  const [destinoFuncion, setDestinoFuncion] = useState('');
+  const [destinoCapitulo, setDestinoCapitulo] = useState('');
+  const [destinoPartidaId, setDestinoPartidaId] = useState('');
+  const [monto, setMonto] = useState('');
+  const [fecha, setFecha] = useState('');
+  const [concepto, setConcepto] = useState('');
+  const [folio, setFolio] = useState('');
+
+  const cargar = () => {
+    return Promise.all([
+      fetch(`/api/partidas?ejercicio=${ejercicio}`).then((r) => r.json()),
+      fetch(`/api/transferencias?ejercicio=${ejercicio}`).then((r) => r.json()),
+    ]).then(([p, t]) => {
+      setPartidas(p);
+      setPares(t);
+    });
+  };
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/movimientos?ejercicio=${ejercicio}`)
-      .then((r) => r.json())
-      .then((data: Movimiento[]) => {
-        setMovimientos(data.filter((m) => m.tipo_tramite === 'transferencia_entrada' || m.tipo_tramite === 'transferencia_salida'));
-      })
-      .finally(() => setLoading(false));
+    cargar().finally(() => setLoading(false));
   }, [ejercicio]);
 
-  if (loading) return <p className="text-[var(--text-muted)] text-sm">Cargando transferencias...</p>;
+  const limpiarForm = () => {
+    setOrigenFuncion(''); setOrigenCapitulo(''); setOrigenPartidaId('');
+    setDestinoFuncion(''); setDestinoCapitulo(''); setDestinoPartidaId('');
+    setMonto(''); setFecha(''); setConcepto(''); setFolio('');
+  };
 
-  const totalEntradas = movimientos.filter((m) => m.tipo_tramite === 'transferencia_entrada').reduce((a, m) => a + Number(m.monto), 0);
-  const totalSalidas = movimientos.filter((m) => m.tipo_tramite === 'transferencia_salida').reduce((a, m) => a + Number(m.monto), 0);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setOk('');
+    if (!origenPartidaId || !destinoPartidaId || !monto || !fecha || !concepto) {
+      setError('Completa origen, destino, monto, fecha y concepto.');
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await fetch('/api/transferencias', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          partida_origen_id: Number(origenPartidaId),
+          partida_destino_id: Number(destinoPartidaId),
+          monto, fecha, concepto,
+          folio_oficio: folio || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Error al guardar la transferencia');
+      } else {
+        setOk('Transferencia registrada correctamente.');
+        limpiarForm();
+        cargar();
+      }
+    } catch {
+      setError('No se pudo conectar con el servidor.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const totalTransferido = pares.reduce((a, t) => a + Number(t.monto), 0);
+
+  if (loading) return <p className="text-[var(--text-muted)] text-sm">Cargando transferencias...</p>;
 
   return (
     <div>
       <p className="text-xs text-[var(--text-muted)] mb-4">
-        Movimientos que reclasifican recurso entre partidas (modificaciones al presupuesto original). Cada uno registra quién lo capturó.
+        Registra en un solo paso de dónde sale el recurso y a dónde va. El sistema crea automáticamente el movimiento de salida en la partida de origen y el de entrada en la de destino, ligados entre sí.
       </p>
 
-      <div className="grid grid-cols-2 gap-3 mb-6">
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
-          <p className="text-xs text-[var(--text-muted)] mb-1">Total entradas</p>
-          <p className="text-xl font-semibold text-emerald-400">${money(totalEntradas)}</p>
+      <form onSubmit={handleSubmit} className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 space-y-4 mb-6 max-w-3xl">
+        <h3 className="text-sm font-semibold">Nueva transferencia</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className={labelCls}>Partida de origen (de donde sale)</label>
+            <SelectorPartida
+              partidas={partidas}
+              funcionSel={origenFuncion} capituloSel={origenCapitulo} partidaId={origenPartidaId}
+              onFuncion={(v) => { setOrigenFuncion(v); setOrigenCapitulo(''); setOrigenPartidaId(''); }}
+              onCapitulo={(v) => { setOrigenCapitulo(v); setOrigenPartidaId(''); }}
+              onPartida={setOrigenPartidaId}
+            />
+          </div>
+          <div>
+            <label className={labelCls}>Partida de destino (a dónde va)</label>
+            <SelectorPartida
+              partidas={partidas}
+              funcionSel={destinoFuncion} capituloSel={destinoCapitulo} partidaId={destinoPartidaId}
+              onFuncion={(v) => { setDestinoFuncion(v); setDestinoCapitulo(''); setDestinoPartidaId(''); }}
+              onCapitulo={(v) => { setDestinoCapitulo(v); setDestinoPartidaId(''); }}
+              onPartida={setDestinoPartidaId}
+            />
+          </div>
         </div>
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
-          <p className="text-xs text-[var(--text-muted)] mb-1">Total salidas</p>
-          <p className="text-xl font-semibold text-rose-400">${money(totalSalidas)}</p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label className={labelCls}>Importe (MXN)</label>
+            <input type="number" step="0.01" className={inputCls} value={monto} onChange={(e) => setMonto(e.target.value)} placeholder="9500.00" />
+          </div>
+          <div>
+            <label className={labelCls}>Fecha</label>
+            <input type="date" className={inputCls} value={fecha} onChange={(e) => setFecha(e.target.value)} onClick={(e) => (e.currentTarget as HTMLInputElement).showPicker?.()} />
+          </div>
+          <div>
+            <label className={labelCls}>Folio (opcional)</label>
+            <input className={inputCls} value={folio} onChange={(e) => setFolio(e.target.value)} placeholder="OF-2026-050" />
+          </div>
         </div>
+
+        <div>
+          <label className={labelCls}>Concepto / justificación</label>
+          <textarea className={`${inputCls} min-h-16`} value={concepto} onChange={(e) => setConcepto(e.target.value)} placeholder="Reclasificación de material didáctico a desarrollo de información..." />
+        </div>
+
+        {error && <p className="text-rose-400 text-sm">{error}</p>}
+        {ok && <p className="text-emerald-400 text-sm">{ok}</p>}
+
+        <button type="submit" disabled={saving} className="rounded-lg bg-[var(--accent)] hover:bg-blue-500 disabled:opacity-50 transition px-5 py-2.5 text-sm font-medium text-white">
+          {saving ? 'Guardando...' : 'Registrar transferencia'}
+        </button>
+      </form>
+
+      <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 mb-4 inline-block">
+        <p className="text-xs text-[var(--text-muted)] mb-1">Total transferido</p>
+        <p className="text-xl font-semibold">${money(totalTransferido)}</p>
       </div>
 
-      {movimientos.length === 0 ? (
-        <p className="text-[var(--text-muted)] text-sm">Aún no se han capturado transferencias en este ejercicio.</p>
+      {pares.length === 0 ? (
+        <p className="text-[var(--text-muted)] text-sm">Aún no se han registrado transferencias en este ejercicio.</p>
       ) : (
         <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-x-auto">
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="text-left text-[var(--text-muted)] border-b border-[var(--border)] text-xs">
                 <th className="py-2.5 px-4 font-medium">Fecha</th>
-                <th className="py-2.5 px-4 font-medium">Movimiento</th>
-                <th className="py-2.5 px-4 font-medium">Partida</th>
-                <th className="py-2.5 px-4 font-medium">Función</th>
-                <th className="py-2.5 px-4 font-medium text-right">Monto</th>
+                <th className="py-2.5 px-4 font-medium">Origen</th>
+                <th className="py-2.5 px-4 font-medium">Destino</th>
+                <th className="py-2.5 px-4 font-medium text-right">Importe</th>
                 <th className="py-2.5 px-4 font-medium">Concepto</th>
                 <th className="py-2.5 px-4 font-medium">Capturado por</th>
               </tr>
             </thead>
             <tbody>
-              {movimientos.map((m) => {
-                const esEntrada = m.tipo_tramite === 'transferencia_entrada';
-                return (
-                  <tr key={m.id} className="border-b border-[var(--border)]/60">
-                    <td className="py-2.5 px-4 text-[var(--text-muted)] whitespace-nowrap">{m.fecha?.toString().slice(0, 10)}</td>
-                    <td className="py-2.5 px-4">
-                      <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${esEntrada ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' : 'bg-rose-500/15 text-rose-300 border-rose-500/30'}`}>
-                        {esEntrada ? '↓ Entrada' : '↑ Salida'}
-                      </span>
-                    </td>
-                    <td className="py-2.5 px-4">{m.partida_clave} — {m.partida_descripcion}</td>
-                    <td className="py-2.5 px-4 text-[var(--text-muted)]">{m.funcion_nombre.slice(0, 35)}</td>
-                    <td className={`py-2.5 px-4 text-right font-medium ${esEntrada ? 'text-emerald-400' : 'text-rose-400'}`}>
-                      {esEntrada ? '+' : '−'}${money(m.monto)}
-                    </td>
-                    <td className="py-2.5 px-4 text-[var(--text-muted)] max-w-xs">{m.concepto}</td>
-                    <td className="py-2.5 px-4 text-[var(--text-muted)] whitespace-nowrap text-xs">{m.creado_por_nombre || '—'}</td>
-                  </tr>
-                );
-              })}
+              {pares.map((t) => (
+                <tr key={t.grupo_transferencia} className="border-b border-[var(--border)]/60">
+                  <td className="py-2.5 px-4 text-[var(--text-muted)] whitespace-nowrap">{t.fecha?.toString().slice(0, 10)}</td>
+                  <td className="py-2.5 px-4">
+                    <span className="text-rose-400">{t.origen_clave}</span> — {t.origen_descripcion}
+                    <span className="block text-[10px] text-[var(--text-muted)]">{t.origen_funcion.slice(0, 40)}</span>
+                  </td>
+                  <td className="py-2.5 px-4">
+                    <span className="text-emerald-400">{t.destino_clave}</span> — {t.destino_descripcion}
+                    <span className="block text-[10px] text-[var(--text-muted)]">{t.destino_funcion.slice(0, 40)}</span>
+                  </td>
+                  <td className="py-2.5 px-4 text-right font-medium">${money(t.monto)}</td>
+                  <td className="py-2.5 px-4 text-[var(--text-muted)] max-w-xs">{t.concepto}</td>
+                  <td className="py-2.5 px-4 text-[var(--text-muted)] whitespace-nowrap text-xs">{t.creado_por_nombre || '—'}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
