@@ -45,6 +45,7 @@ type Saldo = {
   funcion_nombre: string;
   fecha_corte: string | null;
   modificado: string;
+  modificado_real: string;
   ministrado: string;
   retirado: string;
   neto: string;
@@ -81,7 +82,7 @@ function agruparPorFuncion(saldos: Saldo[]) {
     if (!grupos[s.funcion_nombre]) {
       grupos[s.funcion_nombre] = { total_modificado: 0, total_ministrado: 0, total_ejercido: 0, total_por_ejercer: 0, partidas: [], fechasCorte: new Set() };
     }
-    grupos[s.funcion_nombre].total_modificado += Number(s.modificado);
+    grupos[s.funcion_nombre].total_modificado += Number(s.modificado_real);
     grupos[s.funcion_nombre].total_ministrado += Number(s.ministrado);
     grupos[s.funcion_nombre].total_ejercido += Number(s.ejercido);
     grupos[s.funcion_nombre].total_por_ejercer += Number(s.por_ejercer);
@@ -318,7 +319,7 @@ export default function Home() {
   };
 
   const grupos = agruparPorFuncion(saldos);
-  const totalModificado = saldos.reduce((a, s) => a + Number(s.modificado), 0);
+  const totalModificado = saldos.reduce((a, s) => a + Number(s.modificado_real), 0);
   const totalMinistrado = saldos.reduce((a, s) => a + Number(s.ministrado), 0);
   const totalEjercido = saldos.reduce((a, s) => a + Number(s.ejercido), 0);
   const totalComprometido = saldos.reduce((a, s) => a + Number(s.comprometido), 0);
@@ -587,7 +588,7 @@ export default function Home() {
                                 >
                                   <td className="py-1.5 pr-3 text-[var(--text-muted)]">{p.clave}</td>
                                   <td className="py-1.5 pr-3">{p.descripcion}</td>
-                                  <td className="py-1.5 pr-3 text-right">${money(p.modificado)}</td>
+                                  <td className="py-1.5 pr-3 text-right">${money(p.modificado_real)}</td>
                                   <td className="py-1.5 pr-3 text-right">
                                     {editandoId === p.partida_id ? (
                                       <input
