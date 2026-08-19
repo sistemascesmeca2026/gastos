@@ -2,11 +2,13 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import pool from '@/lib/db';
 import { verificarSesion, COOKIE_NAME } from '@/lib/session';
+import { condicionEspacio } from '@/lib/espacio';
 
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const ejercicio = searchParams.get('ejercicio');
+    const espacio = searchParams.get('espacio');
 
     const base = `
       SELECT
@@ -31,9 +33,17 @@ export async function GET(req: Request) {
       LEFT JOIN usuarios au ON au.id = m.actualizado_por_id
     `;
 
-    const result = ejercicio
-      ? await pool.query(`${base} WHERE f.ejercicio = $1 ORDER BY m.fecha DESC, m.id DESC LIMIT 500`, [ejercicio])
-      : await pool.query(`${base} ORDER BY m.fecha DESC, m.id DESC LIMIT 200`);
+    const condiciones: string[] = [];
+    const params: any[] = [];
+    if (ejercicio) {
+      params.push(ejercicio);
+      condiciones.push(`f.ejercicio = $${params.length}`);
+    }
+    const condEspacio = condicionEspacio(espacio, 'f');
+    if (condEspacio) condiciones.push(condEspacio);
+    const where = condiciones.length ? `WHERE ${condiciones.join(' AND ')}` : '';
+
+    const result = await pool.query(`${base} ${where} ORDER BY m.fecha DESC, m.id DESC LIMIT 500`, params);
 
     return NextResponse.json(result.rows);
   } catch (err: any) {

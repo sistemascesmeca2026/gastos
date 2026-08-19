@@ -2,11 +2,13 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import pool from '@/lib/db';
 import { verificarSesion, COOKIE_NAME } from '@/lib/session';
+import { condicionEspacio } from '@/lib/espacio';
 
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const ejercicio = searchParams.get('ejercicio');
+    const espacio = searchParams.get('espacio');
 
     const base = `
       SELECT
@@ -36,9 +38,17 @@ export async function GET(req: Request) {
       WHERE s.tipo_tramite = 'transferencia_salida' AND s.grupo_transferencia IS NOT NULL
     `;
 
-    const result = ejercicio
-      ? await pool.query(`${base} AND fo.ejercicio = $1 ORDER BY s.fecha DESC`, [ejercicio])
-      : await pool.query(`${base} ORDER BY s.fecha DESC`);
+    const condiciones: string[] = [];
+    const params: any[] = [];
+    if (ejercicio) {
+      params.push(ejercicio);
+      condiciones.push(`fo.ejercicio = $${params.length}`);
+    }
+    const condEspacio = condicionEspacio(espacio, 'fo');
+    if (condEspacio) condiciones.push(condEspacio);
+    const extra = condiciones.length ? `AND ${condiciones.join(' AND ')}` : '';
+
+    const result = await pool.query(`${base} ${extra} ORDER BY s.fecha DESC`, params);
 
     return NextResponse.json(result.rows);
   } catch (err: any) {

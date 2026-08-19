@@ -45,6 +45,7 @@ type Saldo = {
   funcion_nombre: string;
   fecha_corte: string | null;
   modificado: string;
+  modificado_real: string;
   ministrado: string;
   retirado: string;
   neto: string;
@@ -81,7 +82,7 @@ function agruparPorFuncion(saldos: Saldo[]) {
     if (!grupos[s.funcion_nombre]) {
       grupos[s.funcion_nombre] = { total_modificado: 0, total_ministrado: 0, total_ejercido: 0, total_por_ejercer: 0, partidas: [], fechasCorte: new Set() };
     }
-    grupos[s.funcion_nombre].total_modificado += Number(s.modificado);
+    grupos[s.funcion_nombre].total_modificado += Number(s.modificado_real);
     grupos[s.funcion_nombre].total_ministrado += Number(s.ministrado);
     grupos[s.funcion_nombre].total_ejercido += Number(s.ejercido);
     grupos[s.funcion_nombre].total_por_ejercer += Number(s.por_ejercer);
@@ -188,6 +189,7 @@ export default function Home() {
   );
 
   const [ejercicioSel, setEjercicioSel] = useState<number>(new Date().getFullYear());
+  const [espacio, setEspacio] = useState<'ruiz' | 'ballinas'>('ruiz');
   const [ejerciciosDisponibles, setEjerciciosDisponibles] = useState<number[]>([]);
 
   useEffect(() => {
@@ -246,9 +248,9 @@ export default function Home() {
 
   const cargarTodo = () => {
     return Promise.all([
-      fetch(`/api/partidas?ejercicio=${ejercicioSel}`).then((r) => r.json()),
-      fetch(`/api/movimientos?ejercicio=${ejercicioSel}`).then((r) => r.json()),
-      fetch(`/api/saldos?ejercicio=${ejercicioSel}`).then((r) => r.json()),
+      fetch(`/api/partidas?ejercicio=${ejercicioSel}&espacio=${espacio}`).then((r) => r.json()),
+      fetch(`/api/movimientos?ejercicio=${ejercicioSel}&espacio=${espacio}`).then((r) => r.json()),
+      fetch(`/api/saldos?ejercicio=${ejercicioSel}&espacio=${espacio}`).then((r) => r.json()),
     ]).then(([p, m, s]) => {
       setPartidas(p);
       setMovimientos(m);
@@ -273,7 +275,7 @@ export default function Home() {
   useEffect(() => {
     setLoading(true);
     cargarTodo().finally(() => setLoading(false));
-  }, [ejercicioSel]);
+  }, [ejercicioSel, espacio]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -318,7 +320,7 @@ export default function Home() {
   };
 
   const grupos = agruparPorFuncion(saldos);
-  const totalModificado = saldos.reduce((a, s) => a + Number(s.modificado), 0);
+  const totalModificado = saldos.reduce((a, s) => a + Number(s.modificado_real), 0);
   const totalMinistrado = saldos.reduce((a, s) => a + Number(s.ministrado), 0);
   const totalEjercido = saldos.reduce((a, s) => a + Number(s.ejercido), 0);
   const totalComprometido = saldos.reduce((a, s) => a + Number(s.comprometido), 0);
@@ -403,6 +405,22 @@ export default function Home() {
               <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-0.5 truncate">Ejercicio fiscal {ejercicioSel}</p>
             </div>
             <div className="hidden sm:flex items-center gap-2 text-xs text-[var(--text-muted)] pt-1 flex-shrink-0">
+              <div className="flex rounded-md border border-[var(--border)] overflow-hidden">
+                <button
+                  onClick={() => setEspacio('ruiz')}
+                  className={`px-2.5 py-1 text-xs ${espacio === 'ruiz' ? 'bg-[var(--accent)] text-white' : 'bg-[var(--surface-2)] text-[var(--text-muted)]'}`}
+                  title="Espacio de Patricia Ruiz: 6 programas institucionales, Subsidio Federal"
+                >
+                  Patricia Ruiz
+                </button>
+                <button
+                  onClick={() => setEspacio('ballinas')}
+                  className={`px-2.5 py-1 text-xs ${espacio === 'ballinas' ? 'bg-[var(--accent)] text-white' : 'bg-[var(--surface-2)] text-[var(--text-muted)]'}`}
+                  title="Espacio de Patricia Ballinas: posgrados e ingresos propios"
+                >
+                  Patricia Ballinas
+                </button>
+              </div>
               <select
                 value={ejercicioSel}
                 onChange={(e) => setEjercicioSel(Number(e.target.value))}
@@ -507,7 +525,7 @@ export default function Home() {
       <main className="max-w-[1600px] mx-auto px-4 sm:px-6 py-6">
         {loading && <p className="text-[var(--text-muted)] text-sm">Cargando...</p>}
 
-        {!loading && tab === 'dashboard' && <Dashboard ejercicio={ejercicioSel} />}
+        {!loading && tab === 'dashboard' && <Dashboard ejercicio={ejercicioSel} espacio={espacio} />}
         {!loading && tab === 'catalogo' && <Catalogo ejercicioSel={ejercicioSel} />}
         {!loading && tab === 'usuarios' && usuario?.es_admin && <Usuarios />}
 
@@ -587,7 +605,7 @@ export default function Home() {
                                 >
                                   <td className="py-1.5 pr-3 text-[var(--text-muted)]">{p.clave}</td>
                                   <td className="py-1.5 pr-3">{p.descripcion}</td>
-                                  <td className="py-1.5 pr-3 text-right">${money(p.modificado)}</td>
+                                  <td className="py-1.5 pr-3 text-right">${money(p.modificado_real)}</td>
                                   <td className="py-1.5 pr-3 text-right">
                                     {editandoId === p.partida_id ? (
                                       <input
@@ -639,9 +657,9 @@ export default function Home() {
           </>
         )}
 
-        {!loading && tab === 'concentrado' && <Concentrado ejercicio={ejercicioSel} />}
-        {!loading && tab === 'transferencias' && <Transferencias ejercicio={ejercicioSel} />}
-        {!loading && tab === 'retirado' && <Retirado ejercicio={ejercicioSel} />}
+        {!loading && tab === 'concentrado' && <Concentrado ejercicio={ejercicioSel} espacio={espacio} />}
+        {!loading && tab === 'transferencias' && <Transferencias ejercicio={ejercicioSel} espacio={espacio} />}
+        {!loading && tab === 'retirado' && <Retirado ejercicio={ejercicioSel} espacio={espacio} />}
 
         {!loading && tab === 'captura' && (
           <form onSubmit={handleSubmit} className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 sm:p-6 space-y-4 max-w-[1200px] mx-auto">

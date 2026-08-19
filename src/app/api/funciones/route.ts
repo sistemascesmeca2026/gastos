@@ -1,14 +1,27 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { condicionEspacio } from '@/lib/espacio';
 
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const ejercicio = searchParams.get('ejercicio');
+    const espacio = searchParams.get('espacio');
 
-    const result = ejercicio
-      ? await pool.query(`SELECT id, clave, nombre, ejercicio, subtotal_oficial FROM funciones WHERE ejercicio = $1 ORDER BY clave`, [ejercicio])
-      : await pool.query(`SELECT id, clave, nombre, ejercicio, subtotal_oficial FROM funciones ORDER BY ejercicio DESC, clave`);
+    const condiciones: string[] = [];
+    const params: any[] = [];
+    if (ejercicio) {
+      params.push(ejercicio);
+      condiciones.push(`ejercicio = $${params.length}`);
+    }
+    const condEspacio = condicionEspacio(espacio);
+    if (condEspacio) condiciones.push(condEspacio);
+    const where = condiciones.length ? `WHERE ${condiciones.join(' AND ')}` : '';
+
+    const result = await pool.query(
+      `SELECT id, clave, nombre, ejercicio, subtotal_oficial, dependencia, fondo, fondo_nombre FROM funciones ${where} ORDER BY ejercicio DESC, clave`,
+      params
+    );
 
     return NextResponse.json(result.rows);
   } catch (err: any) {

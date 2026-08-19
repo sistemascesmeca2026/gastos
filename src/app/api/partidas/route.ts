@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { condicionEspacio } from '@/lib/espacio';
 
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const ejercicio = searchParams.get('ejercicio');
+    const espacio = searchParams.get('espacio');
 
     const base = `
       SELECT
@@ -21,9 +23,17 @@ export async function GET(req: Request) {
       JOIN funciones f ON f.id = c.funcion_id
     `;
 
-    const result = ejercicio
-      ? await pool.query(`${base} WHERE f.ejercicio = $1 ORDER BY f.clave, c.clave, p.clave`, [ejercicio])
-      : await pool.query(`${base} ORDER BY f.ejercicio DESC, f.clave, c.clave, p.clave`);
+    const condiciones: string[] = [];
+    const params: any[] = [];
+    if (ejercicio) {
+      params.push(ejercicio);
+      condiciones.push(`f.ejercicio = $${params.length}`);
+    }
+    const condEspacio = condicionEspacio(espacio, 'f');
+    if (condEspacio) condiciones.push(condEspacio);
+    const where = condiciones.length ? `WHERE ${condiciones.join(' AND ')}` : '';
+
+    const result = await pool.query(`${base} ${where} ORDER BY f.ejercicio DESC, f.clave, c.clave, p.clave`, params);
 
     return NextResponse.json(result.rows);
   } catch (err: any) {

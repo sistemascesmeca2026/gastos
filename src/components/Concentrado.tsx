@@ -63,7 +63,7 @@ function agrupar(saldos: SaldoCompleto[]) {
   return porFuncion;
 }
 
-export default function Concentrado({ ejercicio }: { ejercicio: number }) {
+export default function Concentrado({ ejercicio, espacio }: { ejercicio: number; espacio: string }) {
   const [saldos, setSaldos] = useState<SaldoCompleto[]>([]);
   const [funciones, setFunciones] = useState<Record<number, FuncionInfo>>({});
   const [capitulos, setCapitulos] = useState<Record<number, CapituloInfo>>({});
@@ -74,8 +74,8 @@ export default function Concentrado({ ejercicio }: { ejercicio: number }) {
 
   const cargar = () => {
     return Promise.all([
-      fetch(`/api/saldos?ejercicio=${ejercicio}`).then((r) => r.json()),
-      fetch(`/api/funciones?ejercicio=${ejercicio}`).then((r) => r.json()),
+      fetch(`/api/saldos?ejercicio=${ejercicio}&espacio=${espacio}`).then((r) => r.json()),
+      fetch(`/api/funciones?ejercicio=${ejercicio}&espacio=${espacio}`).then((r) => r.json()),
       fetch('/api/capitulos').then((r) => r.json()),
     ]).then(([s, f, c]) => {
       setSaldos(s);

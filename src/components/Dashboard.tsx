@@ -52,7 +52,7 @@ function money(v: string | number) {
   return Number(v).toLocaleString('es-MX', { minimumFractionDigits: 2 });
 }
 
-export default function Dashboard({ ejercicio }: { ejercicio: number }) {
+export default function Dashboard({ ejercicio, espacio }: { ejercicio: number; espacio: string }) {
   const [data, setData] = useState<DashboardData | null>(null);
   const [sobregiradas, setSobregiradas] = useState<SaldoPartida[]>([]);
   const [fechasCorte, setFechasCorte] = useState<Set<string>>(new Set());
@@ -63,10 +63,10 @@ export default function Dashboard({ ejercicio }: { ejercicio: number }) {
   const chartsRef = useRef<Chart[]>([]);
 
   useEffect(() => {
-    fetch(`/api/dashboard?ejercicio=${ejercicio}`)
+    fetch(`/api/dashboard?ejercicio=${ejercicio}&espacio=${espacio}`)
       .then((r) => r.json())
       .then(setData);
-    fetch(`/api/saldos?ejercicio=${ejercicio}`)
+    fetch(`/api/saldos?ejercicio=${ejercicio}&espacio=${espacio}`)
       .then((r) => r.json())
       .then((saldos: SaldoPartida[]) => {
         setSobregiradas(saldos.filter((s) => Number(s.por_ejercer) < 0));

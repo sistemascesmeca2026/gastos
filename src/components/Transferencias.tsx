@@ -107,7 +107,7 @@ function NuevaPartidaForm({
   );
 }
 
-export default function Transferencias({ ejercicio }: { ejercicio: number }) {
+export default function Transferencias({ ejercicio, espacio }: { ejercicio: number; espacio: string }) {
   const [partidas, setPartidas] = useState<Partida[]>([]);
   const [pares, setPares] = useState<TransferenciaPar[]>([]);
   const [loading, setLoading] = useState(true);
@@ -136,8 +136,8 @@ export default function Transferencias({ ejercicio }: { ejercicio: number }) {
 
   const cargar = () => {
     return Promise.all([
-      fetch(`/api/partidas?ejercicio=${ejercicio}`).then((r) => r.json()),
-      fetch(`/api/transferencias?ejercicio=${ejercicio}`).then((r) => r.json()),
+      fetch(`/api/partidas?ejercicio=${ejercicio}&espacio=${espacio}`).then((r) => r.json()),
+      fetch(`/api/transferencias?ejercicio=${ejercicio}&espacio=${espacio}`).then((r) => r.json()),
       fetch(`/api/capitulos`).then((r) => r.json()),
     ]).then(([p, t, c]) => {
       setPartidas(p);

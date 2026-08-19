@@ -20,13 +20,13 @@ function money(v: string | number) {
   return Number(v).toLocaleString('es-MX', { minimumFractionDigits: 2 });
 }
 
-export default function Retirado({ ejercicio }: { ejercicio: number }) {
+export default function Retirado({ ejercicio, espacio }: { ejercicio: number; espacio: string }) {
   const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/movimientos?ejercicio=${ejercicio}`)
+    fetch(`/api/movimientos?ejercicio=${ejercicio}&espacio=${espacio}`)
       .then((r) => r.json())
       .then((data: Movimiento[]) => {
         setMovimientos(data.filter((m) => m.tipo_tramite === 'retiro_institucional'));
