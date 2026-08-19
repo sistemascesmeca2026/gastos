@@ -300,7 +300,7 @@ export default function Transferencias({ ejercicio }: { ejercicio: number }) {
           </div>
           <div>
             <label className={labelCls}>Folio (opcional)</label>
-            <input className={inputCls} value={folio} onChange={(e) => setFolio(e.target.value)} placeholder="OF-2026-050" />
+            <input className={inputCls} value={folio} onChange={(e) => setFolio(e.target.value)} placeholder="063/ADM.CESMECA/2026" />
           </div>
         </div>
 
