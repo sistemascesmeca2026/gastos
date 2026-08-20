@@ -1,19 +1,37 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import ExcelJS from 'exceljs';
+import { condicionEspacio } from '@/lib/espacio';
+
+const DEPENDENCIA_LABELS: Record<string, string> = {
+  '4008000': 'CESMECA',
+  '4052050': 'DCSH',
+  '4051990': 'DEIF',
+  '4008010': 'MCSH',
+  '4008020': 'MEIF',
+};
 
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const ejercicio = searchParams.get('ejercicio') || String(new Date().getFullYear());
+    const espacio = searchParams.get('espacio');
+
+    const condS: string[] = ['ejercicio = $1'];
+    const condEspacioS = condicionEspacio(espacio);
+    if (condEspacioS) condS.push(condEspacioS);
 
     const saldos = await pool.query(
-      `SELECT partida_id, clave, descripcion, capitulo_clave, capitulo_nombre, funcion_nombre,
+      `SELECT partida_id, funcion_id, clave, descripcion, capitulo_clave, capitulo_nombre, funcion_nombre, dependencia,
               ministrado, retirado, neto, ejercido, comprometido, por_ejercer
-       FROM v_saldo_partida WHERE ejercicio = $1
+       FROM v_saldo_partida WHERE ${condS.join(' AND ')}
        ORDER BY funcion_nombre, capitulo_clave, clave`,
       [ejercicio]
     );
+
+    const condM: string[] = ['f.ejercicio = $1'];
+    const condEspacioM = condicionEspacio(espacio, 'f');
+    if (condEspacioM) condM.push(condEspacioM);
 
     const movimientos = await pool.query(`
       SELECT m.partida_id, m.tipo_tramite, m.monto, m.concepto, m.folio_oficio, m.fecha
@@ -21,7 +39,7 @@ export async function GET(req: Request) {
       JOIN partidas p ON p.id = m.partida_id
       JOIN capitulos c ON c.id = p.capitulo_id
       JOIN funciones f ON f.id = c.funcion_id
-      WHERE f.ejercicio = $1
+      WHERE ${condM.join(' AND ')}
       ORDER BY fecha
     `, [ejercicio]);
 
@@ -37,15 +55,37 @@ export async function GET(req: Request) {
     workbook.creator = 'CESMECA - Sistema POA';
     workbook.created = new Date();
 
-    const grupos: Record<string, typeof saldos.rows> = {};
+    // Agrupar por funcion_id (no por nombre) para no mezclar programas
+    // distintos que comparten el mismo nombre.
+    const grupos: Record<number, { nombre: string; dependencia: string; filas: typeof saldos.rows }> = {};
     for (const s of saldos.rows) {
-      if (!grupos[s.funcion_nombre]) grupos[s.funcion_nombre] = [];
-      grupos[s.funcion_nombre].push(s);
+      if (!grupos[s.funcion_id]) grupos[s.funcion_id] = { nombre: s.funcion_nombre, dependencia: s.dependencia, filas: [] };
+      grupos[s.funcion_id].filas.push(s);
     }
 
-    for (const [funcion, filas] of Object.entries(grupos)) {
-      const nombreHoja = funcion.replace(/PROGRAMA\s*(DE|PARA)?\s*/i, '').slice(0, 31) || 'Función';
-      const sheet = workbook.addWorksheet(nombreHoja);
+    const conteoNombres: Record<string, number> = {};
+    for (const { nombre } of Object.values(grupos)) {
+      conteoNombres[nombre] = (conteoNombres[nombre] || 0) + 1;
+    }
+
+    const nombresHojaUsados = new Set<string>();
+
+    for (const { nombre: funcion, dependencia, filas } of Object.values(grupos)) {
+      let base = funcion.replace(/PROGRAMA\s*(DE|PARA)?\s*/i, '').trim();
+      let nombreHoja = base.slice(0, 31) || 'Función';
+      if (conteoNombres[funcion] > 1) {
+        const sufijo = DEPENDENCIA_LABELS[dependencia] || dependencia;
+        nombreHoja = `${base.slice(0, 31 - sufijo.length - 3)} (${sufijo})`;
+      }
+      let nombreFinal = nombreHoja;
+      let n = 2;
+      while (nombresHojaUsados.has(nombreFinal)) {
+        nombreFinal = `${nombreHoja.slice(0, 28)} ${n}`;
+        n++;
+      }
+      nombresHojaUsados.add(nombreFinal);
+
+      const sheet = workbook.addWorksheet(nombreFinal);
 
       sheet.mergeCells('A1:G1');
       sheet.getCell('A1').value = 'UNIVERSIDAD DE CIENCIAS Y ARTES DE CHIAPAS';
@@ -63,7 +103,7 @@ export async function GET(req: Request) {
       sheet.getCell('A3').alignment = { horizontal: 'center' };
 
       sheet.mergeCells('A4:G4');
-      sheet.getCell('A4').value = funcion;
+      sheet.getCell('A4').value = `${funcion}${DEPENDENCIA_LABELS[dependencia] ? ' (' + DEPENDENCIA_LABELS[dependencia] + ')' : ''}`;
       sheet.getCell('A4').font = { size: 10 };
       sheet.getCell('A4').alignment = { horizontal: 'center' };
 
@@ -117,15 +157,17 @@ export async function GET(req: Request) {
       ];
     }
 
+    const nombreEspacio = espacio === 'ballinas' ? 'ballinas' : espacio === 'ruiz' ? 'ruiz' : 'todo';
     const buffer = await workbook.xlsx.writeBuffer();
     return new NextResponse(buffer, {
       status: 200,
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'Content-Disposition': 'attachment; filename="presupuesto_poa_cesmeca.xlsx"',
+        'Content-Disposition': `attachment; filename="presupuesto_poa_${nombreEspacio}.xlsx"`,
       },
     });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
+

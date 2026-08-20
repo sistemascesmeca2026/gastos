@@ -534,7 +534,7 @@ export default function Home() {
           <>
             <div className="flex gap-2 mb-5 flex-wrap">
               <a
-                href={`/api/export/xlsx?ejercicio=${ejercicioSel}`}
+                href={`/api/export/xlsx?ejercicio=${ejercicioSel}&espacio=${espacio}`}
                 className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 transition px-3.5 py-2 text-sm font-medium text-white"
               >
                 ⬇ Descargar Excel

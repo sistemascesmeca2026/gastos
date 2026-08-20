@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import ExcelJS from 'exceljs';
+import { condicionEspacio } from '@/lib/espacio';
 
 const TIPO_LABELS: Record<string, string> = {
   solicitud_recursos: 'Solicitud de recursos',
@@ -20,18 +21,35 @@ const ESTADO_LABELS: Record<string, string> = {
   pagado: 'Pagado',
 };
 
+const DEPENDENCIA_LABELS: Record<string, string> = {
+  '4008000': 'CESMECA',
+  '4052050': 'DCSH',
+  '4051990': 'DEIF',
+  '4008010': 'MCSH',
+  '4008020': 'MEIF',
+};
+
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const ejercicio = searchParams.get('ejercicio') || String(new Date().getFullYear());
+    const espacio = searchParams.get('espacio');
+
+    const condS: string[] = ['ejercicio = $1'];
+    const condEspacioS = condicionEspacio(espacio);
+    if (condEspacioS) condS.push(condEspacioS);
 
     const saldos = await pool.query(
-      `SELECT partida_id, clave, descripcion, capitulo_clave, capitulo_nombre, funcion_nombre,
+      `SELECT partida_id, funcion_id, clave, descripcion, capitulo_clave, capitulo_nombre, funcion_nombre, dependencia,
               modificado, ejercido, comprometido, retirado, por_ejercer
-       FROM v_saldo_partida WHERE ejercicio = $1
+       FROM v_saldo_partida WHERE ${condS.join(' AND ')}
        ORDER BY funcion_nombre, capitulo_clave, clave`,
       [ejercicio]
     );
+
+    const condM: string[] = ['f.ejercicio = $1'];
+    const condEspacioM = condicionEspacio(espacio, 'f');
+    if (condEspacioM) condM.push(condEspacioM);
 
     const movimientos = await pool.query(
       `SELECT m.partida_id, m.tipo_tramite, m.estado, m.monto, m.concepto, m.folio_oficio, m.fecha
@@ -39,7 +57,7 @@ export async function GET(req: Request) {
        JOIN partidas p ON p.id = m.partida_id
        JOIN capitulos c ON c.id = p.capitulo_id
        JOIN funciones f ON f.id = c.funcion_id
-       WHERE f.ejercicio = $1
+       WHERE ${condM.join(' AND ')}
        ORDER BY m.fecha`,
       [ejercicio]
     );
@@ -55,15 +73,44 @@ export async function GET(req: Request) {
     workbook.creator = 'CESMECA - Sistema POA';
     workbook.created = new Date();
 
-    const porFuncion: Record<string, typeof saldos.rows> = {};
+    // Agrupar por funcion_id (no por nombre) para no mezclar programas
+    // distintos que comparten el mismo nombre (ej. varios posgrados con
+    // "Programa de Excelencia Educativa").
+    const porFuncion: Record<number, typeof saldos.rows> = {};
     for (const s of saldos.rows) {
-      if (!porFuncion[s.funcion_nombre]) porFuncion[s.funcion_nombre] = [];
-      porFuncion[s.funcion_nombre].push(s);
+      if (!porFuncion[s.funcion_id]) porFuncion[s.funcion_id] = [];
+      porFuncion[s.funcion_id].push(s);
     }
 
-    for (const [funcion, filas] of Object.entries(porFuncion)) {
-      const nombreHoja = funcion.replace(/PROGRAMA\s*(DE|PARA)?\s*/i, '').slice(0, 31) || 'Función';
-      const sheet = workbook.addWorksheet(nombreHoja);
+    // Detectar nombres de función repetidos para agregar sufijo de dependencia
+    const conteoNombres: Record<string, number> = {};
+    for (const filas of Object.values(porFuncion)) {
+      const nombre = filas[0].funcion_nombre;
+      conteoNombres[nombre] = (conteoNombres[nombre] || 0) + 1;
+    }
+
+    const nombresHojaUsados = new Set<string>();
+
+    for (const filas of Object.values(porFuncion)) {
+      const funcion = filas[0].funcion_nombre;
+      const dependencia = filas[0].dependencia;
+      let base = funcion.replace(/PROGRAMA\s*(DE|PARA)?\s*/i, '').trim();
+      let nombreHoja = base.slice(0, 31) || 'Función';
+
+      if (conteoNombres[funcion] > 1) {
+        const sufijo = DEPENDENCIA_LABELS[dependencia] || dependencia;
+        nombreHoja = `${base.slice(0, 31 - sufijo.length - 3)} (${sufijo})`;
+      }
+      // Evitar duplicados exactos de nombre de hoja (por si acaso)
+      let nombreFinal = nombreHoja;
+      let n = 2;
+      while (nombresHojaUsados.has(nombreFinal)) {
+        nombreFinal = `${nombreHoja.slice(0, 28)} ${n}`;
+        n++;
+      }
+      nombresHojaUsados.add(nombreFinal);
+
+      const sheet = workbook.addWorksheet(nombreFinal);
 
       sheet.mergeCells('A1:G1');
       sheet.getCell('A1').value = 'UNIVERSIDAD DE CIENCIAS Y ARTES DE CHIAPAS';
@@ -72,7 +119,7 @@ export async function GET(req: Request) {
       sheet.getCell('A2').value = 'CENTRO DE ESTUDIOS SUPERIORES DE MÉXICO Y CENTROAMÉRICA';
       sheet.getCell('A2').font = { italic: true, size: 10 };
       sheet.mergeCells('A3:G3');
-      sheet.getCell('A3').value = `INFORME DE EJERCICIO PRESUPUESTAL ${ejercicio} — ${funcion}`;
+      sheet.getCell('A3').value = `INFORME DE EJERCICIO PRESUPUESTAL ${ejercicio} — ${funcion}${DEPENDENCIA_LABELS[dependencia] ? ' (' + DEPENDENCIA_LABELS[dependencia] + ')' : ''}`;
       sheet.getCell('A3').font = { bold: true, size: 10 };
 
       const headerRow = sheet.getRow(5);
@@ -131,15 +178,17 @@ export async function GET(req: Request) {
       ];
     }
 
+    const nombreEspacio = espacio === 'ballinas' ? 'ballinas' : espacio === 'ruiz' ? 'ruiz' : 'todo';
     const buffer = await workbook.xlsx.writeBuffer();
     return new NextResponse(buffer, {
       status: 200,
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'Content-Disposition': `attachment; filename="informe_ejercicio_${ejercicio}_cesmeca.xlsx"`,
+        'Content-Disposition': `attachment; filename="informe_ejercicio_${ejercicio}_${nombreEspacio}.xlsx"`,
       },
     });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
+

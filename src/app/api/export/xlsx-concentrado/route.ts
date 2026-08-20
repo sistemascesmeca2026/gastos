@@ -1,19 +1,33 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import ExcelJS from 'exceljs';
+import { condicionEspacio } from '@/lib/espacio';
 
 const COLS = ['Original', 'Modificado', 'Ministrado', 'Pre-compromiso', 'Comprometido', 'Devengado', 'Ejercido', 'Pagado', 'Por ejercer', 'Disponible'];
 const FIELDS = ['original', 'modificado', 'ministrado', 'pre_compromiso', 'comprometido', 'devengado', 'ejercido', 'pagado', 'por_ejercer', 'disponible'];
+
+const DEPENDENCIA_LABELS: Record<string, string> = {
+  '4008000': 'CESMECA',
+  '4052050': 'DCSH',
+  '4051990': 'DEIF',
+  '4008010': 'MCSH',
+  '4008020': 'MEIF',
+};
 
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const ejercicio = searchParams.get('ejercicio') || String(new Date().getFullYear());
+    const espacio = searchParams.get('espacio');
+
+    const condS: string[] = ['ejercicio = $1'];
+    const condEspacioS = condicionEspacio(espacio);
+    if (condEspacioS) condS.push(condEspacioS);
 
     const saldos = await pool.query(
-      `SELECT partida_id, clave, descripcion, capitulo_id, capitulo_clave, capitulo_nombre, funcion_id, funcion_nombre,
+      `SELECT partida_id, clave, descripcion, capitulo_id, capitulo_clave, capitulo_nombre, funcion_id, funcion_nombre, dependencia,
               original, modificado, ministrado, pre_compromiso, comprometido, devengado, ejercido, pagado, por_ejercer, disponible
-       FROM v_saldo_partida WHERE ejercicio = $1
+       FROM v_saldo_partida WHERE ${condS.join(' AND ')}
        ORDER BY funcion_nombre, capitulo_clave, clave`,
       [ejercicio]
     );
@@ -27,22 +41,44 @@ export async function GET(req: Request) {
     workbook.creator = 'CESMECA - Sistema POA';
     workbook.created = new Date();
 
-    const porFuncion: Record<string, { funcion_id: number; filas: typeof saldos.rows }> = {};
+    // Agrupar por funcion_id (no por nombre) para no mezclar programas
+    // distintos que comparten el mismo nombre.
+    const porFuncion: Record<number, { funcion_id: number; nombre: string; dependencia: string; filas: typeof saldos.rows }> = {};
     for (const s of saldos.rows) {
-      if (!porFuncion[s.funcion_nombre]) porFuncion[s.funcion_nombre] = { funcion_id: s.funcion_id, filas: [] };
-      porFuncion[s.funcion_nombre].filas.push(s);
+      if (!porFuncion[s.funcion_id]) porFuncion[s.funcion_id] = { funcion_id: s.funcion_id, nombre: s.funcion_nombre, dependencia: s.dependencia, filas: [] };
+      porFuncion[s.funcion_id].filas.push(s);
     }
 
-    for (const [funcion, { funcion_id, filas }] of Object.entries(porFuncion)) {
-      const nombreHoja = funcion.replace(/PROGRAMA\s*(DE|PARA)?\s*/i, '').slice(0, 31) || 'Función';
-      const sheet = workbook.addWorksheet(nombreHoja);
+    const conteoNombres: Record<string, number> = {};
+    for (const { nombre } of Object.values(porFuncion)) {
+      conteoNombres[nombre] = (conteoNombres[nombre] || 0) + 1;
+    }
+
+    const nombresHojaUsados = new Set<string>();
+
+    for (const { funcion_id, nombre: funcion, dependencia, filas } of Object.values(porFuncion)) {
+      let base = funcion.replace(/PROGRAMA\s*(DE|PARA)?\s*/i, '').trim();
+      let nombreHoja = base.slice(0, 31) || 'Función';
+      if (conteoNombres[funcion] > 1) {
+        const sufijo = DEPENDENCIA_LABELS[dependencia] || dependencia;
+        nombreHoja = `${base.slice(0, 31 - sufijo.length - 3)} (${sufijo})`;
+      }
+      let nombreFinal = nombreHoja;
+      let n = 2;
+      while (nombresHojaUsados.has(nombreFinal)) {
+        nombreFinal = `${nombreHoja.slice(0, 28)} ${n}`;
+        n++;
+      }
+      nombresHojaUsados.add(nombreFinal);
+
+      const sheet = workbook.addWorksheet(nombreFinal);
       const lastCol = String.fromCharCode('A'.charCodeAt(0) + 1 + FIELDS.length);
 
       sheet.mergeCells(`A1:${lastCol}1`);
       sheet.getCell('A1').value = 'CONCENTRADO OFICIAL — CESMECA UNICACH';
       sheet.getCell('A1').font = { bold: true, size: 12 };
       sheet.mergeCells(`A2:${lastCol}2`);
-      sheet.getCell('A2').value = funcion;
+      sheet.getCell('A2').value = `${funcion}${DEPENDENCIA_LABELS[dependencia] ? ' (' + DEPENDENCIA_LABELS[dependencia] + ')' : ''}`;
       sheet.getCell('A2').font = { italic: true, size: 10 };
 
       const headerRow = sheet.getRow(4);
@@ -119,15 +155,17 @@ export async function GET(req: Request) {
       sheet.columns = [{ width: 10 }, { width: 38 }, ...FIELDS.map(() => ({ width: 13 }))];
     }
 
+    const nombreEspacio = espacio === 'ballinas' ? 'ballinas' : espacio === 'ruiz' ? 'ruiz' : 'todo';
     const buffer = await workbook.xlsx.writeBuffer();
     return new NextResponse(buffer, {
       status: 200,
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'Content-Disposition': 'attachment; filename="concentrado_oficial_cesmeca.xlsx"',
+        'Content-Disposition': `attachment; filename="concentrado_oficial_${nombreEspacio}.xlsx"`,
       },
     });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
+
