@@ -54,6 +54,15 @@ export async function GET(req: Request) {
       obsPorPartida[m.partida_id].push(linea);
     }
 
+    // Actividades del POA original programadas para julio-diciembre
+    // (texto real del PDF, no un mensaje genérico).
+    const actividadesRes = await pool.query(`SELECT partida_id, descripcion_actividad, monto_jul_dic FROM actividad_pendiente WHERE ejercicio = $1`, [ejercicio]);
+    const actividadesPendientes: Record<number, { descripcion: string; monto: number }[]> = {};
+    for (const a of actividadesRes.rows) {
+      if (!actividadesPendientes[a.partida_id]) actividadesPendientes[a.partida_id] = [];
+      actividadesPendientes[a.partida_id].push({ descripcion: a.descripcion_actividad, monto: Number(a.monto_jul_dic) });
+    }
+
     const workbook = new ExcelJS.Workbook();
     workbook.creator = 'CESMECA - Sistema POA';
     workbook.created = new Date();
@@ -125,7 +134,14 @@ export async function GET(req: Request) {
         const coincide = Math.abs(sumaControl - Number(f.ministrado)) < 0.5;
         const observaciones = [...(obsPorPartida[f.partida_id] || [])];
         if (Number(f.por_ejercer) > 0) {
-          observaciones.push(`Pendiente por ejercer: $${Number(f.por_ejercer).toLocaleString('es-MX', { minimumFractionDigits: 2 })} (programado para el resto del ejercicio ${ejercicio})`);
+          const pendientes = actividadesPendientes[f.partida_id];
+          if (pendientes && pendientes.length) {
+            for (const a of pendientes) {
+              observaciones.push(`Programado jul-dic (POA): ${a.descripcion} — $${a.monto.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`);
+            }
+          } else {
+            observaciones.push(`Pendiente por ejercer: $${Number(f.por_ejercer).toLocaleString('es-MX', { minimumFractionDigits: 2 })} (sin actividad específica registrada, verificar con Planeación)`);
+          }
         }
         row.values = [
           f.clave,
