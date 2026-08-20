@@ -64,6 +64,7 @@ export async function GET(req: Request) {
 
     const obsPorPartida: Record<number, string[]> = {};
     for (const m of movimientos.rows) {
+      if (m.tipo_tramite === 'transferencia_entrada' || m.tipo_tramite === 'transferencia_salida') continue;
       const linea = `${m.concepto} — $${Number(m.monto).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`;
       if (!obsPorPartida[m.partida_id]) obsPorPartida[m.partida_id] = [];
       obsPorPartida[m.partida_id].push(linea);
@@ -146,6 +147,10 @@ export async function GET(req: Request) {
 
         for (const f of filasCap) {
           const row = sheet.getRow(r);
+          const observaciones = [...(obsPorPartida[f.partida_id] || [])];
+          if (Number(f.por_ejercer) > 0) {
+            observaciones.push(`Pendiente por ejercer: $${Number(f.por_ejercer).toLocaleString('es-MX', { minimumFractionDigits: 2 })} (programado para el resto del ejercicio ${ejercicio})`);
+          }
           row.values = [
             f.clave,
             f.descripcion,
@@ -154,7 +159,7 @@ export async function GET(req: Request) {
             Number(f.comprometido),
             Number(f.retirado),
             Number(f.por_ejercer),
-            (obsPorPartida[f.partida_id] || []).join('\n'),
+            observaciones.join('\n'),
           ];
           for (let i = 3; i <= 7; i++) row.getCell(i).numFmt = '$#,##0.00';
           row.getCell(8).alignment = { wrapText: true, vertical: 'top' };

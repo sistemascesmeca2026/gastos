@@ -43,9 +43,12 @@ export async function GET(req: Request) {
       ORDER BY fecha
     `, [ejercicio]);
 
-    // Agrupar observaciones (conceptos) por partida
+    // Agrupar observaciones (conceptos) por partida.
+    // Excluye transferencias: ya tienen su propio control en la pestaña
+    // Transferencias, no deben repetirse aquí (indicación de Patty Ruiz).
     const obsPorPartida: Record<number, string[]> = {};
     for (const m of movimientos.rows) {
+      if (m.tipo_tramite === 'transferencia_entrada' || m.tipo_tramite === 'transferencia_salida') continue;
       const linea = `${m.concepto} — $${Number(m.monto).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`;
       if (!obsPorPartida[m.partida_id]) obsPorPartida[m.partida_id] = [];
       obsPorPartida[m.partida_id].push(linea);
@@ -120,6 +123,10 @@ export async function GET(req: Request) {
         const row = sheet.getRow(r);
         const sumaControl = Number(f.ejercido) + Number(f.retirado) + Number(f.comprometido) + Number(f.por_ejercer);
         const coincide = Math.abs(sumaControl - Number(f.ministrado)) < 0.5;
+        const observaciones = [...(obsPorPartida[f.partida_id] || [])];
+        if (Number(f.por_ejercer) > 0) {
+          observaciones.push(`Pendiente por ejercer: $${money(f.por_ejercer)} (programado para el resto del ejercicio ${ejercicio})`);
+        }
         row.values = [
           f.clave,
           f.descripcion,
@@ -129,7 +136,7 @@ export async function GET(req: Request) {
           Number(f.comprometido),
           Number(f.por_ejercer),
           coincide ? '✓' : '⚠',
-          (obsPorPartida[f.partida_id] || []).join('\n'),
+          observaciones.join('\n'),
         ];
         for (let col = 3; col <= 7; col++) row.getCell(col).numFmt = '$#,##0.00';
         row.getCell(8).alignment = { horizontal: 'center' };
