@@ -12,9 +12,18 @@ type Saldo = {
   capitulo_nombre: string;
   funcion_id: number;
   funcion_nombre: string;
+  dependencia: string;
   original: string; modificado: string; ministrado: string; pre_compromiso: string;
   comprometido: string; devengado: string; ejercido: string; pagado: string;
   por_ejercer: string; disponible: string;
+};
+
+const DEPENDENCIA_LABELS: Record<string, string> = {
+  '4008000': 'CESMECA',
+  '4052050': 'DCSH',
+  '4051990': 'DEIF',
+  '4008010': 'MCSH',
+  '4008020': 'MEIF',
 };
 
 const COLS: { key: keyof Saldo; label: string }[] = [
@@ -37,6 +46,7 @@ function money(v: string | number) {
 function ImprimirConcentradoContenido() {
   const searchParams = useSearchParams();
   const ejercicio = searchParams.get('ejercicio') || String(new Date().getFullYear());
+  const espacio = searchParams.get('espacio') || '';
   const [saldos, setSaldos] = useState<Saldo[]>([]);
   const [capOficial, setCapOficial] = useState<Record<number, number | null>>({});
   const [funOficial, setFunOficial] = useState<Record<number, number | null>>({});
@@ -44,24 +54,26 @@ function ImprimirConcentradoContenido() {
 
   useEffect(() => {
     Promise.all([
-      fetch(`/api/saldos?ejercicio=${ejercicio}`).then((r) => r.json()),
+      fetch(`/api/saldos?ejercicio=${ejercicio}&espacio=${espacio}`).then((r) => r.json()),
       fetch('/api/capitulos').then((r) => r.json()),
-      fetch(`/api/funciones?ejercicio=${ejercicio}`).then((r) => r.json()),
+      fetch(`/api/funciones?ejercicio=${ejercicio}&espacio=${espacio}`).then((r) => r.json()),
     ]).then(([s, c, f]) => {
       setSaldos(s);
       setCapOficial(Object.fromEntries(c.map((x: any) => [x.id, x.subtotal_oficial])));
       setFunOficial(Object.fromEntries(f.map((x: any) => [x.id, x.subtotal_oficial])));
       setLoading(false);
     });
-  }, [ejercicio]);
+  }, [ejercicio, espacio]);
 
   if (loading) return <p style={{ padding: 20 }}>Cargando...</p>;
 
-  const porFuncion: Record<string, { funcion_id: number; filas: Saldo[] }> = {};
+  const porFuncion: Record<number, { nombre: string; dependencia: string; filas: Saldo[] }> = {};
   for (const s of saldos) {
-    if (!porFuncion[s.funcion_nombre]) porFuncion[s.funcion_nombre] = { funcion_id: s.funcion_id, filas: [] };
-    porFuncion[s.funcion_nombre].filas.push(s);
+    if (!porFuncion[s.funcion_id]) porFuncion[s.funcion_id] = { nombre: s.funcion_nombre, dependencia: s.dependencia, filas: [] };
+    porFuncion[s.funcion_id].filas.push(s);
   }
+  const conteoNombres: Record<string, number> = {};
+  for (const g of Object.values(porFuncion)) conteoNombres[g.nombre] = (conteoNombres[g.nombre] || 0) + 1;
 
   const hoy = new Date().toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' });
 
@@ -78,7 +90,7 @@ function ImprimirConcentradoContenido() {
         <p style={{ fontSize: 11, color: '#555', margin: '4px 0 0' }}>Ejercicio {ejercicio} · Generado el {hoy}</p>
       </div>
 
-      {Object.entries(porFuncion).map(([funcion, { funcion_id, filas }]) => {
+      {Object.entries(porFuncion).map(([funcionId, { nombre, dependencia, filas }]) => {
         const porCapitulo: Record<string, { capitulo_id: number; filas: Saldo[] }> = {};
         for (const f of filas) {
           const key = `${f.capitulo_clave} · ${f.capitulo_nombre}`;
@@ -86,12 +98,13 @@ function ImprimirConcentradoContenido() {
           porCapitulo[key].filas.push(f);
         }
         const totalFuncion = filas.reduce((a, f) => a + Number(f.ministrado), 0);
-        const ofFuncion = funOficial[funcion_id];
+        const ofFuncion = funOficial[Number(funcionId)];
         const coincideFuncion = ofFuncion != null ? Math.abs(Number(ofFuncion) - totalFuncion) < 0.5 : null;
+        const etiqueta = conteoNombres[nombre] > 1 ? `${nombre} (${DEPENDENCIA_LABELS[dependencia] || dependencia})` : nombre;
 
         return (
-          <div key={funcion} style={{ marginBottom: 24, pageBreakInside: 'avoid' }}>
-            <h3 style={{ fontSize: 12, background: '#eee', padding: '5px 8px', margin: '0 0 6px' }}>{funcion}</h3>
+          <div key={funcionId} style={{ marginBottom: 24, pageBreakInside: 'avoid' }}>
+            <h3 style={{ fontSize: 12, background: '#eee', padding: '5px 8px', margin: '0 0 6px' }}>{etiqueta}</h3>
             {Object.entries(porCapitulo).map(([capKey, { capitulo_id, filas: filasCap }]) => {
               const totalCap = filasCap.reduce((a, f) => a + Number(f.ministrado), 0);
               const ofCap = capOficial[capitulo_id];

@@ -540,7 +540,7 @@ export default function Home() {
                 ⬇ Descargar Excel
               </a>
               <a
-                href={`/imprimir?ejercicio=${ejercicioSel}`}
+                href={`/imprimir?ejercicio=${ejercicioSel}&espacio=${espacio}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--accent)] hover:bg-blue-500 transition px-3.5 py-2 text-sm font-medium text-white"

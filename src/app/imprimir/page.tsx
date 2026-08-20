@@ -5,11 +5,13 @@ import { useSearchParams } from 'next/navigation';
 
 type Saldo = {
   partida_id: number;
+  funcion_id: number;
   clave: string;
   descripcion: string;
   capitulo_clave: string;
   capitulo_nombre: string;
   funcion_nombre: string;
+  dependencia: string;
   ministrado: string;
   ejercido: string;
   retirado: string;
@@ -17,31 +19,46 @@ type Saldo = {
   por_ejercer: string;
 };
 
+const DEPENDENCIA_LABELS: Record<string, string> = {
+  '4008000': 'CESMECA',
+  '4052050': 'DCSH',
+  '4051990': 'DEIF',
+  '4008010': 'MCSH',
+  '4008020': 'MEIF',
+};
+
 function money(v: string | number) {
   return Number(v).toLocaleString('es-MX', { minimumFractionDigits: 2 });
 }
 
 function agruparPorFuncion(saldos: Saldo[]) {
-  const grupos: Record<string, Saldo[]> = {};
+  const grupos: Record<number, { nombre: string; dependencia: string; filas: Saldo[] }> = {};
   for (const s of saldos) {
-    if (!grupos[s.funcion_nombre]) grupos[s.funcion_nombre] = [];
-    grupos[s.funcion_nombre].push(s);
+    if (!grupos[s.funcion_id]) grupos[s.funcion_id] = { nombre: s.funcion_nombre, dependencia: s.dependencia, filas: [] };
+    grupos[s.funcion_id].filas.push(s);
   }
-  return grupos;
+  const conteo: Record<string, number> = {};
+  for (const g of Object.values(grupos)) conteo[g.nombre] = (conteo[g.nombre] || 0) + 1;
+  return Object.entries(grupos).map(([id, g]) => ({
+    id,
+    etiqueta: conteo[g.nombre] > 1 ? `${g.nombre} (${DEPENDENCIA_LABELS[g.dependencia] || g.dependencia})` : g.nombre,
+    filas: g.filas,
+  }));
 }
 
 function ImprimirContenido() {
   const searchParams = useSearchParams();
   const ejercicio = searchParams.get('ejercicio') || String(new Date().getFullYear());
+  const espacio = searchParams.get('espacio') || '';
   const [saldos, setSaldos] = useState<Saldo[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`/api/saldos?ejercicio=${ejercicio}`)
+    fetch(`/api/saldos?ejercicio=${ejercicio}&espacio=${espacio}`)
       .then((r) => r.json())
       .then(setSaldos)
       .finally(() => setLoading(false));
-  }, [ejercicio]);
+  }, [ejercicio, espacio]);
 
   if (loading) return <p style={{ padding: 20 }}>Cargando...</p>;
 
@@ -66,7 +83,7 @@ function ImprimirContenido() {
         <p style={{ fontSize: 11, color: '#555', margin: '6px 0 0' }}>Generado el {hoy}</p>
       </div>
 
-      {Object.entries(grupos).map(([funcion, filas]) => {
+      {grupos.map(({ id: funcion, etiqueta, filas }) => {
         const totMin = filas.reduce((a, f) => a + Number(f.ministrado), 0);
         const totEj = filas.reduce((a, f) => a + Number(f.ejercido), 0);
         const totRet = filas.reduce((a, f) => a + Number(f.retirado), 0);
@@ -75,7 +92,7 @@ function ImprimirContenido() {
 
         return (
           <div key={funcion} style={{ marginBottom: 28, pageBreakInside: 'avoid' }}>
-            <h4 style={{ fontSize: 12, background: '#eee', padding: '6px 8px', margin: '0 0 6px' }}>{funcion}</h4>
+            <h4 style={{ fontSize: 12, background: '#eee', padding: '6px 8px', margin: '0 0 6px' }}>{etiqueta}</h4>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 10 }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid #999' }}>
