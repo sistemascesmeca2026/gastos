@@ -125,7 +125,7 @@ export async function GET(req: Request) {
         const coincide = Math.abs(sumaControl - Number(f.ministrado)) < 0.5;
         const observaciones = [...(obsPorPartida[f.partida_id] || [])];
         if (Number(f.por_ejercer) > 0) {
-          observaciones.push(`Pendiente por ejercer: $${money(f.por_ejercer)} (programado para el resto del ejercicio ${ejercicio})`);
+          observaciones.push(`Pendiente por ejercer: $${Number(f.por_ejercer).toLocaleString('es-MX', { minimumFractionDigits: 2 })} (programado para el resto del ejercicio ${ejercicio})`);
         }
         row.values = [
           f.clave,
