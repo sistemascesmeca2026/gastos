@@ -40,12 +40,15 @@ export async function GET(req: Request) {
     if (condEspacioS) condS.push(condEspacioS);
 
     const saldos = await pool.query(
-      `SELECT partida_id, funcion_id, clave, descripcion, capitulo_clave, capitulo_nombre, funcion_nombre, dependencia,
+      `SELECT partida_id, funcion_id, clave, descripcion, capitulo_clave, capitulo_nombre, funcion_nombre, dependencia, fondo,
               original, modificado_real, ejercido, comprometido, retirado, por_ejercer
        FROM v_saldo_partida WHERE ${condS.join(' AND ')}
        ORDER BY funcion_nombre, capitulo_clave, clave`,
       [ejercicio]
     );
+
+    const funcionesRes = await pool.query(`SELECT id, clave FROM funciones WHERE ejercicio = $1`, [ejercicio]);
+    const funcionClaveMap: Record<number, string> = Object.fromEntries(funcionesRes.rows.map((f) => [f.id, f.clave]));
 
     const condM: string[] = ['f.ejercicio = $1'];
     const condEspacioM = condicionEspacio(espacio, 'f');
@@ -101,13 +104,21 @@ export async function GET(req: Request) {
 
     for (const filas of Object.values(porFuncion)) {
       const funcion = filas[0].funcion_nombre;
+      const funcion_id = filas[0].funcion_id;
       const dependencia = filas[0].dependencia;
-      let base = funcion.replace(/PROGRAMA\s*(DE|PARA)?\s*/i, '').trim();
-      let nombreHoja = base.slice(0, 31) || 'Función';
-
-      if (conteoNombres[funcion] > 1) {
-        const sufijo = DEPENDENCIA_LABELS[dependencia] || dependencia;
-        nombreHoja = `${base.slice(0, 31 - sufijo.length - 3)} (${sufijo})`;
+      const fondo = filas[0].fondo;
+      let nombreHoja: string;
+      if (espacio === 'ballinas') {
+        const claveCompleta = funcionClaveMap[funcion_id] || '';
+        const claveCorta = claveCompleta.split('.').pop() || claveCompleta;
+        nombreHoja = `${dependencia}-${fondo}-${claveCorta}`.slice(0, 31);
+      } else {
+        let base = funcion.replace(/PROGRAMA\s*(DE|PARA)?\s*/i, '').trim();
+        nombreHoja = base.slice(0, 31) || 'Función';
+        if (conteoNombres[funcion] > 1) {
+          const sufijo = DEPENDENCIA_LABELS[dependencia] || dependencia;
+          nombreHoja = `${base.slice(0, 31 - sufijo.length - 3)} (${sufijo})`;
+        }
       }
       // Evitar duplicados exactos de nombre de hoja (por si acaso)
       let nombreFinal = nombreHoja;

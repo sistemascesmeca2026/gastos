@@ -22,12 +22,15 @@ export async function GET(req: Request) {
     if (condEspacioS) condS.push(condEspacioS);
 
     const saldos = await pool.query(
-      `SELECT partida_id, funcion_id, clave, descripcion, capitulo_clave, capitulo_nombre, funcion_nombre, dependencia,
+      `SELECT partida_id, funcion_id, clave, descripcion, capitulo_clave, capitulo_nombre, funcion_nombre, dependencia, fondo,
               original, modificado_real, ministrado, retirado, neto, ejercido, comprometido, por_ejercer
        FROM v_saldo_partida WHERE ${condS.join(' AND ')}
        ORDER BY funcion_nombre, capitulo_clave, clave`,
       [ejercicio]
     );
+
+    const funcionesRes = await pool.query(`SELECT id, clave FROM funciones WHERE ejercicio = $1`, [ejercicio]);
+    const funcionClaveMap: Record<number, string> = Object.fromEntries(funcionesRes.rows.map((f) => [f.id, f.clave]));
 
     const condM: string[] = ['f.ejercicio = $1'];
     const condEspacioM = condicionEspacio(espacio, 'f');
@@ -69,9 +72,9 @@ export async function GET(req: Request) {
 
     // Agrupar por funcion_id (no por nombre) para no mezclar programas
     // distintos que comparten el mismo nombre.
-    const grupos: Record<number, { nombre: string; dependencia: string; filas: typeof saldos.rows }> = {};
+    const grupos: Record<number, { funcion_id: number; nombre: string; dependencia: string; fondo: string; filas: typeof saldos.rows }> = {};
     for (const s of saldos.rows) {
-      if (!grupos[s.funcion_id]) grupos[s.funcion_id] = { nombre: s.funcion_nombre, dependencia: s.dependencia, filas: [] };
+      if (!grupos[s.funcion_id]) grupos[s.funcion_id] = { funcion_id: s.funcion_id, nombre: s.funcion_nombre, dependencia: s.dependencia, fondo: s.fondo, filas: [] };
       grupos[s.funcion_id].filas.push(s);
     }
 
@@ -82,12 +85,21 @@ export async function GET(req: Request) {
 
     const nombresHojaUsados = new Set<string>();
 
-    for (const { nombre: funcion, dependencia, filas } of Object.values(grupos)) {
-      let base = funcion.replace(/PROGRAMA\s*(DE|PARA)?\s*/i, '').trim();
-      let nombreHoja = base.slice(0, 31) || 'Función';
-      if (conteoNombres[funcion] > 1) {
-        const sufijo = DEPENDENCIA_LABELS[dependencia] || dependencia;
-        nombreHoja = `${base.slice(0, 31 - sufijo.length - 3)} (${sufijo})`;
+    for (const { funcion_id, nombre: funcion, dependencia, fondo, filas } of Object.values(grupos)) {
+      let nombreHoja: string;
+      if (espacio === 'ballinas') {
+        // Formato pedido por Patty Ballinas: Dependencia-Fondo-ClaveCorta
+        // ej. "4052050-0121-PYI030" (última parte de la clave de función)
+        const claveCompleta = funcionClaveMap[funcion_id] || '';
+        const claveCorta = claveCompleta.split('.').pop() || claveCompleta;
+        nombreHoja = `${dependencia}-${fondo}-${claveCorta}`.slice(0, 31);
+      } else {
+        let base = funcion.replace(/PROGRAMA\s*(DE|PARA)?\s*/i, '').trim();
+        nombreHoja = base.slice(0, 31) || 'Función';
+        if (conteoNombres[funcion] > 1) {
+          const sufijo = DEPENDENCIA_LABELS[dependencia] || dependencia;
+          nombreHoja = `${base.slice(0, 31 - sufijo.length - 3)} (${sufijo})`;
+        }
       }
       let nombreFinal = nombreHoja;
       let n = 2;
