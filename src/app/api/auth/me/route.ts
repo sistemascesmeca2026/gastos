@@ -8,7 +8,7 @@ export async function GET() {
   const sesion = await verificarSesion(cookieStore.get(COOKIE_NAME)?.value);
   if (!sesion) return NextResponse.json({ user: null });
 
-  const result = await pool.query(`SELECT nombre, username, es_admin FROM usuarios WHERE id = $1`, [sesion.userId]);
+  const result = await pool.query(`SELECT nombre, username, es_admin, espacio_asignado FROM usuarios WHERE id = $1`, [sesion.userId]);
   const usuario = result.rows[0];
   if (!usuario) return NextResponse.json({ user: null });
 

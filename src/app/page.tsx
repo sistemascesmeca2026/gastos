@@ -259,10 +259,15 @@ export default function Home() {
     });
   };
 
-  const [usuario, setUsuario] = useState<{ nombre: string; username: string; es_admin?: boolean } | null>(null);
+  const [usuario, setUsuario] = useState<{ nombre: string; username: string; es_admin?: boolean; espacio_asignado?: 'ruiz' | 'ballinas' | null } | null>(null);
 
   useEffect(() => {
-    fetch('/api/auth/me').then((r) => r.json()).then((d) => setUsuario(d.user));
+    fetch('/api/auth/me').then((r) => r.json()).then((d) => {
+      setUsuario(d.user);
+      if (d.user?.espacio_asignado === 'ruiz' || d.user?.espacio_asignado === 'ballinas') {
+        setEspacio(d.user.espacio_asignado);
+      }
+    });
   }, []);
 
   const cerrarSesion = async () => {
@@ -412,22 +417,24 @@ export default function Home() {
               <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-0.5 truncate">Ejercicio fiscal {ejercicioSel}</p>
             </div>
             <div className="hidden sm:flex items-center gap-2 text-xs text-[var(--text-muted)] pt-1 flex-shrink-0">
-              <div className="flex rounded-md border border-[var(--border)] overflow-hidden">
-                <button
-                  onClick={() => setEspacio('ruiz')}
-                  className={`px-2.5 py-1 text-xs ${espacio === 'ruiz' ? 'bg-[var(--accent)] text-white' : 'bg-[var(--surface-2)] text-[var(--text-muted)]'}`}
-                  title="Espacio de Patricia Ruiz: 6 programas institucionales, Subsidio Federal"
-                >
-                  Patricia Ruiz
-                </button>
-                <button
-                  onClick={() => setEspacio('ballinas')}
-                  className={`px-2.5 py-1 text-xs ${espacio === 'ballinas' ? 'bg-[var(--accent)] text-white' : 'bg-[var(--surface-2)] text-[var(--text-muted)]'}`}
-                  title="Espacio de Patricia Ballinas: posgrados e ingresos propios"
-                >
-                  Patricia Ballinas
-                </button>
-              </div>
+              {!usuario?.espacio_asignado && (
+                <div className="flex rounded-md border border-[var(--border)] overflow-hidden">
+                  <button
+                    onClick={() => setEspacio('ruiz')}
+                    className={`px-2.5 py-1 text-xs ${espacio === 'ruiz' ? 'bg-[var(--accent)] text-white' : 'bg-[var(--surface-2)] text-[var(--text-muted)]'}`}
+                    title="Espacio de Patricia Ruiz: 6 programas institucionales, Subsidio Federal"
+                  >
+                    Patricia Ruiz
+                  </button>
+                  <button
+                    onClick={() => setEspacio('ballinas')}
+                    className={`px-2.5 py-1 text-xs ${espacio === 'ballinas' ? 'bg-[var(--accent)] text-white' : 'bg-[var(--surface-2)] text-[var(--text-muted)]'}`}
+                    title="Espacio de Patricia Ballinas: posgrados e ingresos propios"
+                  >
+                    Patricia Ballinas
+                  </button>
+                </div>
+              )}
               <select
                 value={ejercicioSel}
                 onChange={(e) => setEjercicioSel(Number(e.target.value))}
