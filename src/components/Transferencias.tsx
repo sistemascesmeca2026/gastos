@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Combobox from '@/components/Combobox';
 
 type Partida = {
   id: number;
@@ -54,24 +55,32 @@ function SelectorPartida({
 
   return (
     <div className="space-y-2">
-      <select className={inputCls} value={funcionSel} onChange={(e) => onFuncion(e.target.value)}>
-        <option value="">Función...</option>
-        {funciones.map(([nombre, etiqueta]) => <option key={nombre} value={nombre}>{etiqueta}</option>)}
-      </select>
-      <select className={inputCls} value={capituloSel} disabled={!funcionSel} onChange={(e) => onCapitulo(e.target.value)}>
-        <option value="">{funcionSel ? 'Capítulo...' : 'Primero elige función'}</option>
-        {capitulos.map((c) => <option key={c} value={c}>{c}</option>)}
-      </select>
-      <select
+      <Combobox
+        className={inputCls}
+        value={funcionSel}
+        onChange={onFuncion}
+        placeholder="Función..."
+        opciones={funciones.map(([nombre, etiqueta]) => ({ value: nombre, label: etiqueta }))}
+      />
+      <Combobox
+        className={inputCls}
+        value={capituloSel}
+        disabled={!funcionSel}
+        onChange={onCapitulo}
+        placeholder={funcionSel ? 'Capítulo...' : 'Primero elige función'}
+        opciones={capitulos.map((c) => ({ value: c, label: c }))}
+      />
+      <Combobox
         className={inputCls}
         value={partidaId}
         disabled={!capituloSel}
-        onChange={(e) => (e.target.value === '__nueva__' ? onNuevaPartida() : onPartida(e.target.value))}
-      >
-        <option value="">{capituloSel ? 'Partida...' : 'Primero elige capítulo'}</option>
-        {filtradas.map((p) => <option key={p.id} value={p.id}>{p.partida_clave} - {p.partida_descripcion}</option>)}
-        {capituloSel && <option value="__nueva__">+ Agregar partida nueva…</option>}
-      </select>
+        onChange={(v) => (v === '__nueva__' ? onNuevaPartida() : onPartida(v))}
+        placeholder={capituloSel ? 'Partida...' : 'Primero elige capítulo'}
+        opciones={[
+          ...filtradas.map((p) => ({ value: String(p.id), label: `${p.partida_clave} - ${p.partida_descripcion}` })),
+          ...(capituloSel ? [{ value: '__nueva__', label: '+ Agregar partida nueva…' }] : []),
+        ]}
+      />
     </div>
   );
 }

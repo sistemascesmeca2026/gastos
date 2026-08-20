@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Combobox from '@/components/Combobox';
 
 type Funcion = { id: number; clave: string; nombre: string; ejercicio: number };
 type Capitulo = { id: number; clave: string; nombre: string; funcion_id: number; funcion_clave: string; funcion_nombre: string };
@@ -221,10 +222,13 @@ export default function Catalogo({ ejercicioSel }: { ejercicioSel: number }) {
         <h3 className="text-sm font-semibold">Nuevo capítulo</h3>
         <div>
           <label className={labelCls}>Función</label>
-          <select className={inputCls} value={cFuncionId} onChange={(e) => setCFuncionId(e.target.value)}>
-            <option value="">Selecciona una función...</option>
-            {funciones.map((f) => <option key={f.id} value={f.id}>[{f.ejercicio}] {f.clave} {f.nombre}</option>)}
-          </select>
+          <Combobox
+            className={inputCls}
+            value={cFuncionId}
+            onChange={setCFuncionId}
+            placeholder="Selecciona una función..."
+            opciones={funciones.map((f) => ({ value: String(f.id), label: `[${f.ejercicio}] ${f.clave} ${f.nombre}` }))}
+          />
         </div>
         <div>
           <label className={labelCls}>Clave (ej. 2000, 3000)</label>
@@ -241,17 +245,24 @@ export default function Catalogo({ ejercicioSel }: { ejercicioSel: number }) {
         <h3 className="text-sm font-semibold">Nueva partida</h3>
         <div>
           <label className={labelCls}>Función</label>
-          <select className={inputCls} value={pFuncionId} onChange={(e) => { setPFuncionId(e.target.value); setPCapituloId(''); }}>
-            <option value="">Selecciona una función...</option>
-            {funciones.map((f) => <option key={f.id} value={f.id}>[{f.ejercicio}] {f.clave} {f.nombre}</option>)}
-          </select>
+          <Combobox
+            className={inputCls}
+            value={pFuncionId}
+            onChange={(v) => { setPFuncionId(v); setPCapituloId(''); }}
+            placeholder="Selecciona una función..."
+            opciones={funciones.map((f) => ({ value: String(f.id), label: `[${f.ejercicio}] ${f.clave} ${f.nombre}` }))}
+          />
         </div>
         <div>
           <label className={labelCls}>Capítulo</label>
-          <select className={inputCls} value={pCapituloId} disabled={!pFuncionId} onChange={(e) => setPCapituloId(e.target.value)}>
-            <option value="">{pFuncionId ? 'Selecciona un capítulo...' : 'Primero elige una función'}</option>
-            {capitulosDeFuncion.map((c) => <option key={c.id} value={c.id}>{c.clave} · {c.nombre}</option>)}
-          </select>
+          <Combobox
+            className={inputCls}
+            value={pCapituloId}
+            disabled={!pFuncionId}
+            onChange={setPCapituloId}
+            placeholder={pFuncionId ? 'Selecciona un capítulo...' : 'Primero elige una función'}
+            opciones={capitulosDeFuncion.map((c) => ({ value: String(c.id), label: `${c.clave} · ${c.nombre}` }))}
+          />
         </div>
         <div>
           <label className={labelCls}>Clave de partida (ej. 21101)</label>

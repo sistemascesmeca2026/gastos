@@ -852,10 +852,13 @@ export default function Home() {
                   </div>
                   <div>
                     <label className={labelCls}>Función</label>
-                    <select className={inputCls} value={filtroFuncion} onChange={(e) => setFiltroFuncion(e.target.value)}>
-                      <option value="">Todas</option>
-                      {funcionesUnicas.map((f) => <option key={f} value={f}>{f.slice(0, 35)}</option>)}
-                    </select>
+                    <Combobox
+                      className={inputCls}
+                      value={filtroFuncion}
+                      onChange={setFiltroFuncion}
+                      placeholder="Todas"
+                      opciones={[{ value: '', label: 'Todas' }, ...funcionesUnicas.map((f) => ({ value: f, label: f }))]}
+                    />
                   </div>
                   <div>
                     <label className={labelCls}>Tipo de trámite</label>
