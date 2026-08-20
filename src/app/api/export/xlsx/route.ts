@@ -23,7 +23,7 @@ export async function GET(req: Request) {
 
     const saldos = await pool.query(
       `SELECT partida_id, funcion_id, clave, descripcion, capitulo_clave, capitulo_nombre, funcion_nombre, dependencia,
-              ministrado, retirado, neto, ejercido, comprometido, por_ejercer
+              original, modificado_real, ministrado, retirado, neto, ejercido, comprometido, por_ejercer
        FROM v_saldo_partida WHERE ${condS.join(' AND ')}
        ORDER BY funcion_nombre, capitulo_clave, clave`,
       [ejercicio]
@@ -99,28 +99,28 @@ export async function GET(req: Request) {
 
       const sheet = workbook.addWorksheet(nombreFinal);
 
-      sheet.mergeCells('A1:G1');
+      sheet.mergeCells('A1:K1');
       sheet.getCell('A1').value = 'UNIVERSIDAD DE CIENCIAS Y ARTES DE CHIAPAS';
       sheet.getCell('A1').font = { bold: true, size: 12 };
       sheet.getCell('A1').alignment = { horizontal: 'center' };
 
-      sheet.mergeCells('A2:G2');
+      sheet.mergeCells('A2:K2');
       sheet.getCell('A2').value = 'CENTRO DE ESTUDIOS SUPERIORES DE MÉXICO Y CENTROAMÉRICA';
       sheet.getCell('A2').font = { bold: true, italic: true, size: 11 };
       sheet.getCell('A2').alignment = { horizontal: 'center' };
 
-      sheet.mergeCells('A3:G3');
+      sheet.mergeCells('A3:K3');
       sheet.getCell('A3').value = 'PROGRAMA OPERATIVO ANUAL 2026';
       sheet.getCell('A3').font = { bold: true, italic: true, size: 11 };
       sheet.getCell('A3').alignment = { horizontal: 'center' };
 
-      sheet.mergeCells('A4:G4');
+      sheet.mergeCells('A4:K4');
       sheet.getCell('A4').value = `${funcion}${DEPENDENCIA_LABELS[dependencia] ? ' (' + DEPENDENCIA_LABELS[dependencia] + ')' : ''}`;
       sheet.getCell('A4').font = { size: 10 };
       sheet.getCell('A4').alignment = { horizontal: 'center' };
 
       const headerRow = sheet.getRow(6);
-      headerRow.values = ['Partida', 'Descripción', 'Recurso', 'Ejercido', 'Retirado', 'Comprometido', 'Por ejercer', 'Verificación', 'Observaciones'];
+      headerRow.values = ['Partida', 'Descripción', 'Original', 'Modificado', 'Ministrado', 'Ejercido', 'Retirado', 'Comprometido', 'Por ejercer', 'Verificación', 'Observaciones'];
       headerRow.eachCell((cell) => {
         cell.font = { bold: true };
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9D2E9' } };
@@ -146,6 +146,8 @@ export async function GET(req: Request) {
         row.values = [
           f.clave,
           f.descripcion,
+          Number(f.original),
+          Number(f.modificado_real),
           Number(f.ministrado),
           Number(f.ejercido),
           Number(f.retirado) || null,
@@ -154,16 +156,18 @@ export async function GET(req: Request) {
           coincide ? '✓' : '⚠',
           observaciones.join('\n'),
         ];
-        for (let col = 3; col <= 7; col++) row.getCell(col).numFmt = '$#,##0.00';
-        row.getCell(8).alignment = { horizontal: 'center' };
-        row.getCell(8).font = { color: { argb: coincide ? 'FF16A34A' : 'FFDC2626' }, bold: true };
-        row.getCell(9).alignment = { wrapText: true, vertical: 'top' };
+        for (let col = 3; col <= 9; col++) row.getCell(col).numFmt = '$#,##0.00';
+        row.getCell(10).alignment = { horizontal: 'center' };
+        row.getCell(10).font = { color: { argb: coincide ? 'FF16A34A' : 'FFDC2626' }, bold: true };
+        row.getCell(11).alignment = { wrapText: true, vertical: 'top' };
         r++;
       }
 
       const totalRow = sheet.getRow(r);
       totalRow.values = [
         '', 'TOTAL',
+        filas.reduce((a, f) => a + Number(f.original), 0),
+        filas.reduce((a, f) => a + Number(f.modificado_real), 0),
         filas.reduce((a, f) => a + Number(f.ministrado), 0),
         filas.reduce((a, f) => a + Number(f.ejercido), 0),
         filas.reduce((a, f) => a + Number(f.retirado), 0),
@@ -173,10 +177,10 @@ export async function GET(req: Request) {
         '',
       ];
       totalRow.eachCell((cell) => { cell.font = { bold: true }; });
-      for (let col = 3; col <= 7; col++) totalRow.getCell(col).numFmt = '$#,##0.00';
+      for (let col = 3; col <= 9; col++) totalRow.getCell(col).numFmt = '$#,##0.00';
 
       sheet.columns = [
-        { width: 10 }, { width: 42 }, { width: 14 }, { width: 12 }, { width: 12 }, { width: 14 }, { width: 14 }, { width: 12 }, { width: 50 },
+        { width: 10 }, { width: 42 }, { width: 13 }, { width: 13 }, { width: 13 }, { width: 12 }, { width: 12 }, { width: 14 }, { width: 14 }, { width: 12 }, { width: 50 },
       ];
     }
 

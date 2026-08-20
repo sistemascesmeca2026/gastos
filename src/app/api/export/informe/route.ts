@@ -41,7 +41,7 @@ export async function GET(req: Request) {
 
     const saldos = await pool.query(
       `SELECT partida_id, funcion_id, clave, descripcion, capitulo_clave, capitulo_nombre, funcion_nombre, dependencia,
-              modificado, ejercido, comprometido, retirado, por_ejercer
+              original, modificado_real, ejercido, comprometido, retirado, por_ejercer
        FROM v_saldo_partida WHERE ${condS.join(' AND ')}
        ORDER BY funcion_nombre, capitulo_clave, clave`,
       [ejercicio]
@@ -120,18 +120,18 @@ export async function GET(req: Request) {
 
       const sheet = workbook.addWorksheet(nombreFinal);
 
-      sheet.mergeCells('A1:G1');
+      sheet.mergeCells('A1:H1');
       sheet.getCell('A1').value = 'UNIVERSIDAD DE CIENCIAS Y ARTES DE CHIAPAS';
       sheet.getCell('A1').font = { bold: true, size: 12 };
-      sheet.mergeCells('A2:G2');
+      sheet.mergeCells('A2:H2');
       sheet.getCell('A2').value = 'CENTRO DE ESTUDIOS SUPERIORES DE MÉXICO Y CENTROAMÉRICA';
       sheet.getCell('A2').font = { italic: true, size: 10 };
-      sheet.mergeCells('A3:G3');
+      sheet.mergeCells('A3:H3');
       sheet.getCell('A3').value = `INFORME DE EJERCICIO PRESUPUESTAL ${ejercicio} — ${funcion}${DEPENDENCIA_LABELS[dependencia] ? ' (' + DEPENDENCIA_LABELS[dependencia] + ')' : ''}`;
       sheet.getCell('A3').font = { bold: true, size: 10 };
 
       const headerRow = sheet.getRow(5);
-      headerRow.values = ['Partida', 'Descripción', 'Recurso', 'Ejercido', 'Comprometido', 'Retirado', 'Por ejercer', 'Observaciones'];
+      headerRow.values = ['Partida', 'Descripción', 'Original', 'Modificado', 'Ejercido', 'Comprometido', 'Retirado', 'Por ejercer', 'Observaciones'];
       headerRow.eachCell((c) => { c.font = { bold: true }; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9D2E9' } }; });
 
       let r = 6;
@@ -142,7 +142,7 @@ export async function GET(req: Request) {
         porCapitulo[key].push(f);
       }
 
-      const totales = { modificado: 0, ejercido: 0, comprometido: 0, retirado: 0, por_ejercer: 0 };
+      const totales = { original: 0, modificado: 0, ejercido: 0, comprometido: 0, retirado: 0, por_ejercer: 0 };
 
       for (const [capKey, filasCap] of Object.entries(porCapitulo)) {
         const capRow = sheet.getRow(r);
@@ -168,17 +168,19 @@ export async function GET(req: Request) {
           row.values = [
             f.clave,
             f.descripcion,
-            Number(f.modificado),
+            Number(f.original),
+            Number(f.modificado_real),
             Number(f.ejercido),
             Number(f.comprometido),
             Number(f.retirado),
             Number(f.por_ejercer),
             observaciones.join('\n'),
           ];
-          for (let i = 3; i <= 7; i++) row.getCell(i).numFmt = '$#,##0.00';
-          row.getCell(8).alignment = { wrapText: true, vertical: 'top' };
+          for (let i = 3; i <= 8; i++) row.getCell(i).numFmt = '$#,##0.00';
+          row.getCell(9).alignment = { wrapText: true, vertical: 'top' };
 
-          totales.modificado += Number(f.modificado);
+          totales.original += Number(f.original);
+          totales.modificado += Number(f.modificado_real);
           totales.ejercido += Number(f.ejercido);
           totales.comprometido += Number(f.comprometido);
           totales.retirado += Number(f.retirado);
@@ -188,12 +190,12 @@ export async function GET(req: Request) {
       }
 
       const totalRow = sheet.getRow(r);
-      totalRow.values = ['', 'TOTAL', totales.modificado, totales.ejercido, totales.comprometido, totales.retirado, totales.por_ejercer, ''];
+      totalRow.values = ['', 'TOTAL', totales.original, totales.modificado, totales.ejercido, totales.comprometido, totales.retirado, totales.por_ejercer, ''];
       totalRow.eachCell((c) => { c.font = { bold: true }; });
-      for (let i = 3; i <= 7; i++) totalRow.getCell(i).numFmt = '$#,##0.00';
+      for (let i = 3; i <= 8; i++) totalRow.getCell(i).numFmt = '$#,##0.00';
 
       sheet.columns = [
-        { width: 10 }, { width: 40 }, { width: 15 }, { width: 14 }, { width: 14 }, { width: 12 }, { width: 14 }, { width: 55 },
+        { width: 10 }, { width: 40 }, { width: 13 }, { width: 13 }, { width: 14 }, { width: 14 }, { width: 12 }, { width: 14 }, { width: 55 },
       ];
     }
 
