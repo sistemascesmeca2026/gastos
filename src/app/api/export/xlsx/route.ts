@@ -137,7 +137,7 @@ export async function GET(req: Request) {
           const pendientes = actividadesPendientes[f.partida_id];
           if (pendientes && pendientes.length) {
             for (const a of pendientes) {
-              observaciones.push(`Programado jul-dic (POA): ${a.descripcion} — $${a.monto.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`);
+              observaciones.push(`Pendiente (POA): ${a.descripcion} — $${Number(f.por_ejercer).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`);
             }
           } else {
             observaciones.push(`Pendiente por ejercer: $${Number(f.por_ejercer).toLocaleString('es-MX', { minimumFractionDigits: 2 })} (sin actividad específica registrada, verificar con Planeación)`);
