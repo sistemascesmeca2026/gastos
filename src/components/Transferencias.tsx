@@ -123,6 +123,8 @@ export default function Transferencias({ ejercicio, espacio }: { ejercicio: numb
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [ok, setOk] = useState('');
+  const [paginaTr, setPaginaTr] = useState(1);
+  const POR_PAGINA_TR = 20;
 
   const [origenFuncion, setOrigenFuncion] = useState('');
   const [origenCapitulo, setOrigenCapitulo] = useState('');
@@ -334,6 +336,7 @@ export default function Transferencias({ ejercicio, espacio }: { ejercicio: numb
       {pares.length === 0 ? (
         <p className="text-[var(--text-muted)] text-sm">Aún no se han registrado transferencias en este ejercicio.</p>
       ) : (
+        <>
         <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-x-auto">
           <table className="w-full text-sm border-collapse">
             <thead>
@@ -347,7 +350,7 @@ export default function Transferencias({ ejercicio, espacio }: { ejercicio: numb
               </tr>
             </thead>
             <tbody>
-              {pares.map((t) => (
+              {pares.slice((paginaTr - 1) * POR_PAGINA_TR, paginaTr * POR_PAGINA_TR).map((t) => (
                 <tr key={t.grupo_transferencia} className="border-b border-[var(--border)]/60">
                   <td className="py-2.5 px-4 text-[var(--text-muted)] whitespace-nowrap">{t.fecha?.toString().slice(0, 10)}</td>
                   <td className="py-2.5 px-4">
@@ -366,6 +369,26 @@ export default function Transferencias({ ejercicio, espacio }: { ejercicio: numb
             </tbody>
           </table>
         </div>
+        {pares.length > POR_PAGINA_TR && (
+          <div className="flex items-center justify-center gap-3 mt-4">
+            <button
+              onClick={() => setPaginaTr((p) => Math.max(1, p - 1))}
+              disabled={paginaTr === 1}
+              className="px-3 py-1.5 text-sm rounded-lg border border-[var(--border)] bg-[var(--surface)] disabled:opacity-40 hover:bg-[var(--surface-2)]"
+            >
+              ← Anterior
+            </button>
+            <span className="text-xs text-[var(--text-muted)]">Página {paginaTr} de {Math.ceil(pares.length / POR_PAGINA_TR)}</span>
+            <button
+              onClick={() => setPaginaTr((p) => Math.min(Math.ceil(pares.length / POR_PAGINA_TR), p + 1))}
+              disabled={paginaTr === Math.ceil(pares.length / POR_PAGINA_TR)}
+              className="px-3 py-1.5 text-sm rounded-lg border border-[var(--border)] bg-[var(--surface)] disabled:opacity-40 hover:bg-[var(--surface-2)]"
+            >
+              Siguiente →
+            </button>
+          </div>
+        )}
+        </>
       )}
     </div>
   );

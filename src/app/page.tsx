@@ -379,6 +379,12 @@ export default function Home() {
   const hayFiltrosActivos = !!(filtroFuncion || filtroTipo || filtroDesde || filtroHasta || filtroTexto);
   const limpiarFiltros = () => { setFiltroFuncion(''); setFiltroTipo(''); setFiltroDesde(''); setFiltroHasta(''); setFiltroTexto(''); };
 
+  const [paginaMov, setPaginaMov] = useState(1);
+  const POR_PAGINA_MOV = 20;
+  useEffect(() => { setPaginaMov(1); }, [filtroFuncion, filtroTipo, filtroDesde, filtroHasta, filtroTexto]);
+  const totalPaginasMov = Math.max(1, Math.ceil(movimientosFiltrados.length / POR_PAGINA_MOV));
+  const movimientosPagina = movimientosFiltrados.slice((paginaMov - 1) * POR_PAGINA_MOV, paginaMov * POR_PAGINA_MOV);
+
   const guardarEdicion = async (partidaId: number) => {
     if (editValor === '' || isNaN(Number(editValor))) return;
     try {
@@ -890,7 +896,7 @@ export default function Home() {
             <>
             {/* Vista de tarjetas — solo móvil */}
             <div className="sm:hidden space-y-3">
-              {movimientosFiltrados.map((m) => {
+              {movimientosPagina.map((m) => {
                 const tipoInfo = TIPOS.find((t) => t.value === m.tipo_tramite);
                 const estadoInfo = ESTADOS.find((s) => s.value === m.estado);
                 const expandido = conceptoExpandido === m.id;
@@ -951,7 +957,7 @@ export default function Home() {
                   </tr>
                 </thead>
                 <tbody>
-                  {movimientosFiltrados.map((m) => {
+                  {movimientosPagina.map((m) => {
                     const tipoInfo = TIPOS.find((t) => t.value === m.tipo_tramite);
                     const estadoInfo = ESTADOS.find((s) => s.value === m.estado);
                     return (
@@ -979,6 +985,26 @@ export default function Home() {
                 </tbody>
               </table>
             </div>
+
+            {totalPaginasMov > 1 && (
+              <div className="flex items-center justify-center gap-3 mt-4">
+                <button
+                  onClick={() => setPaginaMov((p) => Math.max(1, p - 1))}
+                  disabled={paginaMov === 1}
+                  className="px-3 py-1.5 text-sm rounded-lg border border-[var(--border)] bg-[var(--surface)] disabled:opacity-40 hover:bg-[var(--surface-2)]"
+                >
+                  ← Anterior
+                </button>
+                <span className="text-xs text-[var(--text-muted)]">Página {paginaMov} de {totalPaginasMov}</span>
+                <button
+                  onClick={() => setPaginaMov((p) => Math.min(totalPaginasMov, p + 1))}
+                  disabled={paginaMov === totalPaginasMov}
+                  className="px-3 py-1.5 text-sm rounded-lg border border-[var(--border)] bg-[var(--surface)] disabled:opacity-40 hover:bg-[var(--surface-2)]"
+                >
+                  Siguiente →
+                </button>
+              </div>
+            )}
             </>
               )}
             </>
