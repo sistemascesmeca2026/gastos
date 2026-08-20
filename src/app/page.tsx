@@ -10,6 +10,7 @@ import Concentrado from '@/components/Concentrado';
 import CambiarPassword from '@/components/CambiarPassword';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import ThemeToggle from '@/components/ThemeToggle';
+import Combobox from '@/components/Combobox';
 
 type Partida = {
   id: number;
@@ -683,52 +684,47 @@ export default function Home() {
             )}
             <div>
               <label className={labelCls}>Función / Programa</label>
-              <select
+              <Combobox
                 className={inputCls}
                 value={funcionSel}
-                onChange={(e) => { setFuncionSel(e.target.value); setCapituloSel(''); setForm({ ...form, partida_id: '' }); }}
-              >
-                <option value="">Selecciona una función...</option>
-                {funciones.map(([nombre, etiqueta]) => (
-                  <option key={nombre} value={nombre}>{etiqueta}</option>
-                ))}
-              </select>
+                onChange={(v) => { setFuncionSel(v); setCapituloSel(''); setForm({ ...form, partida_id: '' }); }}
+                placeholder="Selecciona una función..."
+                opciones={funciones.map(([nombre, etiqueta]) => ({ value: nombre, label: etiqueta }))}
+              />
             </div>
 
             <div>
               <label className={labelCls}>Capítulo</label>
-              <select
+              <Combobox
                 className={inputCls}
                 value={capituloSel}
                 disabled={!funcionSel}
-                onChange={(e) => { setCapituloSel(e.target.value); setForm({ ...form, partida_id: '' }); }}
-              >
-                <option value="">{funcionSel ? 'Selecciona un capítulo...' : 'Primero elige una función'}</option>
-                {capitulos.map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
+                onChange={(v) => { setCapituloSel(v); setForm({ ...form, partida_id: '' }); }}
+                placeholder={funcionSel ? 'Selecciona un capítulo...' : 'Primero elige una función'}
+                opciones={capitulos.map((c) => ({ value: c, label: c }))}
+              />
             </div>
 
             <div>
               <label className={labelCls}>Partida</label>
-              <select
+              <Combobox
                 className={inputCls}
                 value={form.partida_id}
                 disabled={!capituloSel}
-                onChange={(e) => {
-                  if (e.target.value === '__nueva__') {
+                onChange={(v) => {
+                  if (v === '__nueva__') {
                     setNuevaPartidaError('');
                     setMostrarNuevaPartida(true);
                     return;
                   }
-                  setForm({ ...form, partida_id: e.target.value });
+                  setForm({ ...form, partida_id: v });
                 }}
-              >
-                <option value="">{capituloSel ? 'Selecciona una partida...' : 'Primero elige un capítulo'}</option>
-                {partidasFiltradas.map((p) => (
-                  <option key={p.id} value={p.id}>{p.partida_clave} - {p.partida_descripcion}</option>
-                ))}
-                {capituloSel && <option value="__nueva__">+ Agregar partida nueva…</option>}
-              </select>
+                placeholder={capituloSel ? 'Selecciona una partida...' : 'Primero elige un capítulo'}
+                opciones={[
+                  ...partidasFiltradas.map((p) => ({ value: String(p.id), label: `${p.partida_clave} - ${p.partida_descripcion}` })),
+                  ...(capituloSel ? [{ value: '__nueva__', label: '+ Agregar partida nueva…' }] : []),
+                ]}
+              />
               {mostrarNuevaPartida && (
                 <div className="mt-2 rounded-lg border border-[var(--accent)]/40 bg-[var(--surface-2)] p-3 space-y-2">
                   <p className="text-xs text-[var(--text-muted)]">
