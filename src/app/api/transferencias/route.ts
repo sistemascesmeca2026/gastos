@@ -13,6 +13,7 @@ export async function GET(req: Request) {
     const base = `
       SELECT
         s.id AS salida_id,
+        d.id AS entrada_id,
         s.grupo_transferencia,
         s.fecha,
         s.monto,
@@ -51,6 +52,35 @@ export async function GET(req: Request) {
     const result = await pool.query(`${base} ${extra} ORDER BY s.fecha DESC`, params);
 
     return NextResponse.json(result.rows);
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+
+export async function PATCH(req: Request) {
+  try {
+    const cookieStore = await cookies();
+    const sesion = await verificarSesion(cookieStore.get(COOKIE_NAME)?.value);
+
+    const { grupo_transferencia, monto, fecha, concepto, folio_oficio } = await req.json();
+
+    if (!grupo_transferencia || !monto || !fecha || !concepto) {
+      return NextResponse.json({ error: 'Faltan campos obligatorios (monto, fecha, concepto)' }, { status: 400 });
+    }
+
+    const result = await pool.query(
+      `UPDATE movimientos
+       SET monto = $1, fecha = $2, concepto = $3, folio_oficio = $4, actualizado_en = now(), actualizado_por_id = $5
+       WHERE grupo_transferencia = $6
+       RETURNING id`,
+      [monto, fecha, concepto, folio_oficio || null, sesion?.userId || null, grupo_transferencia]
+    );
+
+    if (result.rowCount === 0) {
+      return NextResponse.json({ error: 'No se encontró la transferencia' }, { status: 404 });
+    }
+
+    return NextResponse.json({ ok: true, actualizados: result.rowCount });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

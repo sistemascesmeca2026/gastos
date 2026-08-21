@@ -16,6 +16,7 @@ type Partida = {
 
 type TransferenciaPar = {
   salida_id: number;
+  entrada_id: number;
   grupo_transferencia: string;
   fecha: string;
   monto: string;
@@ -130,6 +131,57 @@ export default function Transferencias({ ejercicio, espacio }: { ejercicio: numb
   const POR_PAGINA_TR = 20;
   const [parAEliminar, setParAEliminar] = useState<TransferenciaPar | null>(null);
   const [eliminando, setEliminando] = useState(false);
+
+  const [parEnEdicion, setParEnEdicion] = useState<TransferenciaPar | null>(null);
+  const [editMonto, setEditMonto] = useState('');
+  const [editFecha, setEditFecha] = useState('');
+  const [editFolio, setEditFolio] = useState('');
+  const [editConcepto, setEditConcepto] = useState('');
+  const [guardandoEdicion, setGuardandoEdicion] = useState(false);
+  const [errorEdicion, setErrorEdicion] = useState('');
+
+  const abrirEdicion = (t: TransferenciaPar) => {
+    setParEnEdicion(t);
+    setEditMonto(t.monto);
+    setEditFecha(t.fecha?.toString().slice(0, 10) || '');
+    setEditFolio(t.folio_oficio || '');
+    setEditConcepto(t.concepto);
+    setErrorEdicion('');
+  };
+
+  const guardarEdicion = async () => {
+    if (!parEnEdicion) return;
+    setErrorEdicion('');
+    if (!editMonto || !editFecha || !editConcepto.trim()) {
+      setErrorEdicion('Monto, fecha y concepto son obligatorios.');
+      return;
+    }
+    setGuardandoEdicion(true);
+    try {
+      const res = await fetch('/api/transferencias', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          grupo_transferencia: parEnEdicion.grupo_transferencia,
+          monto: editMonto,
+          fecha: editFecha,
+          concepto: editConcepto.trim(),
+          folio_oficio: editFolio || null,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setErrorEdicion(data.error || 'No se pudo guardar la edición.');
+        return;
+      }
+      setParEnEdicion(null);
+      await cargar();
+    } catch {
+      setErrorEdicion('Error de conexión al guardar.');
+    } finally {
+      setGuardandoEdicion(false);
+    }
+  };
 
   const confirmarEliminarPar = async () => {
     if (!parAEliminar) return;
@@ -391,6 +443,7 @@ export default function Transferencias({ ejercicio, espacio }: { ejercicio: numb
                   <td className="py-2.5 px-4 text-[var(--text-muted)] max-w-xs">{t.concepto}</td>
                   <td className="py-2.5 px-4 text-[var(--text-muted)] whitespace-nowrap text-xs">{t.creado_por_nombre || '—'}</td>
                   <td className="py-2.5 px-4">
+                    <button onClick={() => abrirEdicion(t)} className="text-[var(--text-muted)] hover:text-[var(--accent)] text-xs mr-2" title="Editar monto/fecha/concepto/folio">🖉</button>
                     <button onClick={() => setParAEliminar(t)} className="text-[var(--text-muted)] hover:text-rose-400 text-xs" title="Eliminar transferencia (ambos lados)">🗑</button>
                   </td>
                 </tr>
@@ -427,6 +480,41 @@ export default function Transferencias({ ejercicio, espacio }: { ejercicio: numb
           onConfirmar={confirmarEliminarPar}
           onCancelar={() => setParAEliminar(null)}
         />
+      )}
+      {parEnEdicion && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4" onClick={() => setParEnEdicion(null)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 space-y-3">
+            <h2 className="text-sm font-semibold">Editar transferencia</h2>
+            <p className="text-xs text-[var(--text-muted)]">
+              {parEnEdicion.origen_clave} → {parEnEdicion.destino_clave}. Se actualizan ambos lados a la vez (las partidas de origen/destino no se pueden cambiar aquí).
+            </p>
+            <div>
+              <label className={labelCls}>Importe (MXN)</label>
+              <input type="number" step="0.01" className={inputCls} value={editMonto} onChange={(e) => setEditMonto(e.target.value)} />
+            </div>
+            <div>
+              <label className={labelCls}>Fecha</label>
+              <input type="date" className={inputCls} value={editFecha} onChange={(e) => setEditFecha(e.target.value)} onClick={(e) => (e.currentTarget as HTMLInputElement).showPicker?.()} />
+            </div>
+            <div>
+              <label className={labelCls}>Folio (opcional)</label>
+              <input className={inputCls} value={editFolio} onChange={(e) => setEditFolio(e.target.value)} placeholder="063/ADM.CESMECA/2026" />
+            </div>
+            <div>
+              <label className={labelCls}>Concepto / justificación</label>
+              <textarea className={`${inputCls} min-h-16`} value={editConcepto} onChange={(e) => setEditConcepto(e.target.value)} />
+            </div>
+            {errorEdicion && <p className="text-rose-400 text-xs">{errorEdicion}</p>}
+            <div className="flex gap-2 justify-end pt-2">
+              <button onClick={() => setParEnEdicion(null)} className="rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--text-muted)] hover:text-[var(--text)] transition">
+                Cancelar
+              </button>
+              <button onClick={guardarEdicion} disabled={guardandoEdicion} className="rounded-lg bg-[var(--accent)] hover:bg-blue-500 disabled:opacity-50 transition px-4 py-2 text-sm font-medium text-white">
+                {guardandoEdicion ? 'Guardando...' : 'Guardar cambios'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
