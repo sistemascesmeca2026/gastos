@@ -33,8 +33,25 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
+
+    // Si el movimiento es parte de una transferencia (entrada o salida),
+    // se borran ambos lados juntos para no dejar ninguno huérfano.
+    const result = await pool.query(
+      `SELECT tipo_tramite, grupo_transferencia FROM movimientos WHERE id = $1`,
+      [id]
+    );
+    const mov = result.rows[0];
+
+    if (mov && (mov.tipo_tramite === 'transferencia_entrada' || mov.tipo_tramite === 'transferencia_salida') && mov.grupo_transferencia) {
+      const del = await pool.query(
+        `DELETE FROM movimientos WHERE grupo_transferencia = $1 RETURNING id`,
+        [mov.grupo_transferencia]
+      );
+      return NextResponse.json({ ok: true, borrados: del.rowCount, esTransferencia: true });
+    }
+
     await pool.query(`DELETE FROM movimientos WHERE id = $1`, [id]);
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, borrados: 1, esTransferencia: false });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

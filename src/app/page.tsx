@@ -353,15 +353,15 @@ export default function Home() {
     setTab('captura');
   };
 
-  const [movimientoAEliminar, setMovimientoAEliminar] = useState<number | null>(null);
+  const [movimientoAEliminar, setMovimientoAEliminar] = useState<Movimiento | null>(null);
 
-  const eliminarMovimiento = (id: number) => {
-    setMovimientoAEliminar(id);
+  const eliminarMovimiento = (m: Movimiento) => {
+    setMovimientoAEliminar(m);
   };
 
   const confirmarEliminarMovimiento = async () => {
     if (movimientoAEliminar === null) return;
-    const res = await fetch(`/api/movimientos/${movimientoAEliminar}`, { method: 'DELETE' });
+    const res = await fetch(`/api/movimientos/${movimientoAEliminar.id}`, { method: 'DELETE' });
     setMovimientoAEliminar(null);
     if (res.ok) cargarTodo();
   };
@@ -939,7 +939,7 @@ export default function Home() {
                       </span>
                       <span className="flex gap-3">
                         <button onClick={() => iniciarEdicionMovimiento(m)} className="text-[var(--text-muted)] hover:text-[var(--accent)] text-xs" title="Editar">✎</button>
-                        <button onClick={() => eliminarMovimiento(m.id)} className="text-[var(--text-muted)] hover:text-rose-400 text-xs" title="Eliminar">🗑</button>
+                        <button onClick={() => eliminarMovimiento(m)} className="text-[var(--text-muted)] hover:text-rose-400 text-xs" title="Eliminar">🗑</button>
                       </span>
                     </div>
                   </div>
@@ -984,7 +984,7 @@ export default function Home() {
                         </td>
                         <td className="py-2.5 px-4 text-right whitespace-nowrap">
                           <button onClick={() => iniciarEdicionMovimiento(m)} className="text-[var(--text-muted)] hover:text-[var(--accent)] text-xs mr-2" title="Editar">✎</button>
-                          <button onClick={() => eliminarMovimiento(m.id)} className="text-[var(--text-muted)] hover:text-rose-400 text-xs" title="Eliminar">🗑</button>
+                          <button onClick={() => eliminarMovimiento(m)} className="text-[var(--text-muted)] hover:text-rose-400 text-xs" title="Eliminar">🗑</button>
                         </td>
                       </tr>
                     );
@@ -1022,7 +1022,11 @@ export default function Home() {
       {movimientoAEliminar !== null && (
         <ConfirmDialog
           titulo="Eliminar movimiento"
-          mensaje="Esta acción no se puede deshacer. El oficio se borrará permanentemente de la base de datos."
+          mensaje={
+            movimientoAEliminar.tipo_tramite === 'transferencia_entrada' || movimientoAEliminar.tipo_tramite === 'transferencia_salida'
+              ? 'Este movimiento es parte de una transferencia. Se eliminarán AMBOS lados (origen y destino) juntos, para no dejar ninguno huérfano. Esta acción no se puede deshacer.'
+              : 'Esta acción no se puede deshacer. El oficio se borrará permanentemente de la base de datos.'
+          }
           textoConfirmar="Eliminar"
           onConfirmar={confirmarEliminarMovimiento}
           onCancelar={() => setMovimientoAEliminar(null)}
