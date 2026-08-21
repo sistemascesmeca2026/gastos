@@ -66,6 +66,7 @@ export default function CargarCorte() {
       }
       setNombreArchivo(data.nombreArchivo);
       setAnalisis(data.analisis);
+      if (data.fechaSugerida) setFechaCorte(data.fechaSugerida);
     } catch {
       setError('Error de conexión al subir el archivo.');
     } finally {
@@ -105,6 +106,10 @@ export default function CargarCorte() {
   };
 
   const totalPartidas = analisis?.funciones.reduce((a, f) => a + f.capitulos.reduce((a2, c) => a2 + c.partidas.length, 0), 0) || 0;
+
+  const hayDiferencias = analisis?.funciones.some((f) =>
+    f.capitulos.some((c) => c.partidas.some((p) => p.estadoPartida === 'diferente'))
+  ) ?? false;
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -247,12 +252,17 @@ export default function CargarCorte() {
                 ✓ Carga confirmada: {resultadoConfirmacion.funcionesCreadas} función(es) nueva(s), {resultadoConfirmacion.capitulosCreados} capítulo(s) nuevo(s), {resultadoConfirmacion.partidasCreadas} partida(s) nueva(s), {resultadoConfirmacion.lineaBaseInsertadas} corte(s) guardado(s).
               </div>
             )}
+            {hayDiferencias && !resultadoConfirmacion && (
+              <p className="text-xs text-amber-400">⚠ Hay partidas con monto distinto al corte anterior — revísalas arriba antes de confirmar.</p>
+            )}
             <button
               onClick={confirmarCarga}
               disabled={confirmando}
-              className="rounded-lg bg-[var(--accent)] hover:bg-blue-500 disabled:opacity-50 transition px-4 py-2 text-sm font-medium text-white"
+              className={`rounded-lg transition px-4 py-2 text-sm font-medium text-white disabled:opacity-50 ${
+                hayDiferencias ? 'bg-amber-600 hover:bg-amber-500' : 'bg-emerald-600 hover:bg-emerald-500'
+              }`}
             >
-              {confirmando ? 'Cargando...' : 'Confirmar y cargar'}
+              {confirmando ? 'Cargando...' : hayDiferencias ? 'Confirmar y cargar (con diferencias)' : '✓ Confirmar y cargar (sin diferencias)'}
             </button>
           </div>
         </div>

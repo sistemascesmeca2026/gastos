@@ -21,6 +21,15 @@ export async function POST(req: Request) {
 
     const analisis = analizarTextoCorte(resultadoPdf.text);
 
+    // Intentar detectar la fecha del corte a partir del nombre del archivo
+    // (formato observado: DD-MM-AAAA en el nombre del PDF oficial).
+    let fechaSugerida: string | null = null;
+    const mFecha = archivo.name.match(/(\d{2})-(\d{2})-(\d{4})/);
+    if (mFecha) {
+      const [, dd, mm, aaaa] = mFecha;
+      fechaSugerida = `${aaaa}-${mm}-${dd}`;
+    }
+
     // Comparar cada función/partida contra el catálogo ya existente en la BD.
     if (analisis.dependencia && analisis.fondo) {
       for (const f of analisis.funciones) {
@@ -74,7 +83,7 @@ export async function POST(req: Request) {
       }
     }
 
-    return NextResponse.json({ ok: true, nombreArchivo: archivo.name, ejercicio, analisis });
+    return NextResponse.json({ ok: true, nombreArchivo: archivo.name, ejercicio, fechaSugerida, analisis });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Error al analizar el PDF' }, { status: 500 });
   }
