@@ -41,6 +41,10 @@ export default function CargarCorte() {
   const [error, setError] = useState('');
   const [nombreArchivo, setNombreArchivo] = useState('');
   const [analisis, setAnalisis] = useState<Analisis | null>(null);
+  const [fechaCorte, setFechaCorte] = useState(() => new Date().toISOString().slice(0, 10));
+  const [confirmando, setConfirmando] = useState(false);
+  const [resultadoConfirmacion, setResultadoConfirmacion] = useState<any>(null);
+  const [errorConfirmacion, setErrorConfirmacion] = useState('');
 
   const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const archivo = e.target.files?.[0];
@@ -48,6 +52,8 @@ export default function CargarCorte() {
     setAnalizando(true);
     setError('');
     setAnalisis(null);
+    setResultadoConfirmacion(null);
+    setErrorConfirmacion('');
     try {
       const formData = new FormData();
       formData.append('archivo', archivo);
@@ -65,6 +71,36 @@ export default function CargarCorte() {
     } finally {
       setAnalizando(false);
       e.target.value = '';
+    }
+  };
+
+  const confirmarCarga = async () => {
+    if (!analisis) return;
+    setConfirmando(true);
+    setErrorConfirmacion('');
+    setResultadoConfirmacion(null);
+    try {
+      const res = await fetch('/api/cargar-corte/confirmar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dependencia: analisis.dependencia,
+          fondo: analisis.fondo,
+          funciones: analisis.funciones,
+          ejercicio: 2026,
+          fechaCorte,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setErrorConfirmacion(data.error || 'No se pudo confirmar la carga.');
+        return;
+      }
+      setResultadoConfirmacion(data.resumen);
+    } catch {
+      setErrorConfirmacion('Error de conexión al confirmar la carga.');
+    } finally {
+      setConfirmando(false);
     }
   };
 
@@ -191,8 +227,33 @@ export default function CargarCorte() {
             );
           })}
 
-          <div className="rounded-xl border border-dashed border-[var(--border)] p-5 text-center text-sm text-[var(--text-muted)]">
-            Siguiente paso (aún no construido): comparar esta vista previa contra el catálogo ya existente, marcar coincidencias/diferencias, y un botón para confirmar la carga.
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 space-y-3">
+            <h3 className="text-sm font-semibold">Confirmar y cargar</h3>
+            <p className="text-xs text-[var(--text-muted)]">
+              Al confirmar, se crean en la base de datos las funciones/capítulos/partidas que no existan, y se guarda un nuevo corte (línea base) con la fecha que indiques. No borra ni modifica movimientos capturados.
+            </p>
+            <div className="max-w-xs">
+              <label className="block text-xs text-[var(--text-muted)] mb-1.5">Fecha del corte</label>
+              <input
+                type="date"
+                value={fechaCorte}
+                onChange={(e) => setFechaCorte(e.target.value)}
+                className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text)]"
+              />
+            </div>
+            {errorConfirmacion && <p className="text-xs text-rose-400">{errorConfirmacion}</p>}
+            {resultadoConfirmacion && (
+              <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-3 text-xs text-emerald-300">
+                ✓ Carga confirmada: {resultadoConfirmacion.funcionesCreadas} función(es) nueva(s), {resultadoConfirmacion.capitulosCreados} capítulo(s) nuevo(s), {resultadoConfirmacion.partidasCreadas} partida(s) nueva(s), {resultadoConfirmacion.lineaBaseInsertadas} corte(s) guardado(s).
+              </div>
+            )}
+            <button
+              onClick={confirmarCarga}
+              disabled={confirmando}
+              className="rounded-lg bg-[var(--accent)] hover:bg-blue-500 disabled:opacity-50 transition px-4 py-2 text-sm font-medium text-white"
+            >
+              {confirmando ? 'Cargando...' : 'Confirmar y cargar'}
+            </button>
           </div>
         </div>
       )}
