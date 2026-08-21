@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Dashboard from '@/components/Dashboard';
 import Catalogo from '@/components/Catalogo';
 import Usuarios from '@/components/Usuarios';
+import CargarCorte from '@/components/CargarCorte';
 import Transferencias from '@/components/Transferencias';
 import Retirado from '@/components/Retirado';
 import Concentrado from '@/components/Concentrado';
@@ -113,6 +114,7 @@ const TABS = [
   { key: 'transferencias', label: 'Transferencias' },
   { key: 'retirado', label: 'Retirado' },
   { key: 'usuarios', label: 'Usuarios' },
+  { key: 'cargar-corte', label: '🧪 Cargar corte' },
 ] as const;
 
 type TabKey = typeof TABS[number]['key'];
@@ -519,7 +521,7 @@ export default function Home() {
           </div>
 
           <nav className="flex gap-1 mt-4 -mb-px overflow-x-auto">
-            {TABS.filter((t) => t.key !== 'usuarios' || usuario?.es_admin).map((t) => (
+            {TABS.filter((t) => (t.key !== 'usuarios' && t.key !== 'cargar-corte') || usuario?.es_admin).map((t) => (
               <button
                 key={t.key}
                 onClick={() => setTab(t.key)}
@@ -542,6 +544,7 @@ export default function Home() {
         {!loading && tab === 'dashboard' && <Dashboard ejercicio={ejercicioSel} espacio={espacio} />}
         {!loading && tab === 'catalogo' && <Catalogo ejercicioSel={ejercicioSel} />}
         {!loading && tab === 'usuarios' && usuario?.es_admin && <Usuarios />}
+        {!loading && tab === 'cargar-corte' && usuario?.es_admin && <CargarCorte />}
 
         {!loading && tab === 'presupuesto' && (
           <>
