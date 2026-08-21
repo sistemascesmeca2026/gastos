@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Combobox from '@/components/Combobox';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 type Partida = {
   id: number;
@@ -127,6 +128,20 @@ export default function Transferencias({ ejercicio, espacio }: { ejercicio: numb
   const [ok, setOk] = useState('');
   const [paginaTr, setPaginaTr] = useState(1);
   const POR_PAGINA_TR = 20;
+  const [parAEliminar, setParAEliminar] = useState<TransferenciaPar | null>(null);
+  const [eliminando, setEliminando] = useState(false);
+
+  const confirmarEliminarPar = async () => {
+    if (!parAEliminar) return;
+    setEliminando(true);
+    try {
+      await fetch(`/api/movimientos/${parAEliminar.salida_id}`, { method: 'DELETE' });
+      setParAEliminar(null);
+      await cargar();
+    } finally {
+      setEliminando(false);
+    }
+  };
 
   const [origenFuncion, setOrigenFuncion] = useState('');
   const [origenCapitulo, setOrigenCapitulo] = useState('');
@@ -357,6 +372,7 @@ export default function Transferencias({ ejercicio, espacio }: { ejercicio: numb
                 <th className="py-2.5 px-4 font-medium text-right">Importe</th>
                 <th className="py-2.5 px-4 font-medium">Concepto</th>
                 <th className="py-2.5 px-4 font-medium">Capturado por</th>
+                <th className="py-2.5 px-4 font-medium">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -374,6 +390,9 @@ export default function Transferencias({ ejercicio, espacio }: { ejercicio: numb
                   <td className="py-2.5 px-4 text-right font-medium">${money(t.monto)}</td>
                   <td className="py-2.5 px-4 text-[var(--text-muted)] max-w-xs">{t.concepto}</td>
                   <td className="py-2.5 px-4 text-[var(--text-muted)] whitespace-nowrap text-xs">{t.creado_por_nombre || '—'}</td>
+                  <td className="py-2.5 px-4">
+                    <button onClick={() => setParAEliminar(t)} className="text-[var(--text-muted)] hover:text-rose-400 text-xs" title="Eliminar transferencia (ambos lados)">🗑</button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -399,6 +418,15 @@ export default function Transferencias({ ejercicio, espacio }: { ejercicio: numb
           </div>
         )}
         </>
+      )}
+      {parAEliminar && (
+        <ConfirmDialog
+          titulo="Eliminar transferencia"
+          mensaje={`Se eliminarán ambos lados de esta transferencia: la salida de ${parAEliminar.origen_clave} y la entrada en ${parAEliminar.destino_clave}, por $${money(parAEliminar.monto)}. Esta acción no se puede deshacer.`}
+          textoConfirmar={eliminando ? 'Eliminando...' : 'Eliminar'}
+          onConfirmar={confirmarEliminarPar}
+          onCancelar={() => setParAEliminar(null)}
+        />
       )}
     </div>
   );
