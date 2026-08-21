@@ -15,10 +15,12 @@ type Partida = {
   pagado: number;
   por_ejercer: number;
   disponible: number;
+  estadoPartida?: 'nueva' | 'coincide' | 'diferente' | 'sin_corte_previo' | 'nueva_funcion_o_capitulo';
+  ministradoAnterior?: number | null;
 };
 
-type Capitulo = { clave: string; nombre: string; partidas: Partida[] };
-type Funcion = { clave: string; nombre: string; capitulos: Capitulo[] };
+type Capitulo = { clave: string; nombre: string; partidas: Partida[]; estadoCapitulo?: 'nueva' | 'existente' };
+type Funcion = { clave: string; nombre: string; capitulos: Capitulo[]; estadoFuncion?: 'nueva' | 'existente' };
 
 type Analisis = {
   dependencia: { clave: string; nombre: string } | null;
@@ -49,6 +51,7 @@ export default function CargarCorte() {
     try {
       const formData = new FormData();
       formData.append('archivo', archivo);
+      formData.append('ejercicio', '2026');
       const res = await fetch('/api/cargar-corte/analizar', { method: 'POST', body: formData });
       const data = await res.json();
       if (!res.ok) {
@@ -128,11 +131,23 @@ export default function CargarCorte() {
 
           {analisis.funciones.map((f) => {
             const totalFuncion = f.capitulos.reduce((a, c) => a + c.partidas.reduce((a2, p) => a2 + p.ministrado, 0), 0);
+            const nuevas = f.capitulos.reduce((a, c) => a + c.partidas.filter((p) => p.estadoPartida === 'nueva' || p.estadoPartida === 'nueva_funcion_o_capitulo').length, 0);
+            const diferentes = f.capitulos.reduce((a, c) => a + c.partidas.filter((p) => p.estadoPartida === 'diferente').length, 0);
             return (
               <div key={f.clave} className="rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden">
-                <div className="px-5 py-3 bg-[var(--surface-2)] border-b border-[var(--border)]">
-                  <p className="text-sm font-semibold">{f.clave} — {f.nombre}</p>
-                  <p className="text-xs text-[var(--text-muted)]">Ministrado total: ${money(totalFuncion)}</p>
+                <div className="px-5 py-3 bg-[var(--surface-2)] border-b border-[var(--border)] flex items-center justify-between flex-wrap gap-2">
+                  <div>
+                    <p className="text-sm font-semibold">
+                      {f.clave} — {f.nombre}{' '}
+                      {f.estadoFuncion === 'nueva' && <span className="text-xs font-normal text-sky-400 border border-sky-500/40 rounded px-1.5 py-0.5 ml-1">función nueva</span>}
+                      {f.estadoFuncion === 'existente' && <span className="text-xs font-normal text-[var(--text-muted)] border border-[var(--border)] rounded px-1.5 py-0.5 ml-1">ya existe</span>}
+                    </p>
+                    <p className="text-xs text-[var(--text-muted)]">Ministrado total: ${money(totalFuncion)}</p>
+                  </div>
+                  <div className="text-xs flex gap-2">
+                    {nuevas > 0 && <span className="text-sky-400">{nuevas} partida(s) nueva(s)</span>}
+                    {diferentes > 0 && <span className="text-amber-400">{diferentes} con monto distinto</span>}
+                  </div>
                 </div>
                 {f.capitulos.map((c) => (
                   <div key={c.clave} className="px-5 py-3 border-b border-[var(--border)]/50 last:border-0">
@@ -146,6 +161,7 @@ export default function CargarCorte() {
                           <th className="pr-3 py-1 font-normal text-right">Modificado</th>
                           <th className="pr-3 py-1 font-normal text-right">Ministrado</th>
                           <th className="pr-3 py-1 font-normal text-right">Por ejercer</th>
+                          <th className="pr-3 py-1 font-normal">Estado</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -157,6 +173,14 @@ export default function CargarCorte() {
                             <td className="pr-3 py-1 text-right">${money(p.modificado)}</td>
                             <td className="pr-3 py-1 text-right">${money(p.ministrado)}</td>
                             <td className="pr-3 py-1 text-right">${money(p.por_ejercer)}</td>
+                            <td className="pr-3 py-1">
+                              {(p.estadoPartida === 'nueva' || p.estadoPartida === 'nueva_funcion_o_capitulo') && <span className="text-sky-400">🆕 Nueva</span>}
+                              {p.estadoPartida === 'coincide' && <span className="text-emerald-400">✓ Coincide</span>}
+                              {p.estadoPartida === 'sin_corte_previo' && <span className="text-[var(--text-muted)]">Ya existe, sin corte previo</span>}
+                              {p.estadoPartida === 'diferente' && (
+                                <span className="text-amber-400">⚠ Antes ${money(p.ministradoAnterior || 0)}, ahora ${money(p.ministrado)}</span>
+                              )}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
