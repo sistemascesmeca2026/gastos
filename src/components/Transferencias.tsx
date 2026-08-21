@@ -38,7 +38,7 @@ const inputCls = 'w-full rounded-lg border border-[var(--border)] bg-[var(--surf
 const labelCls = 'block text-xs text-[var(--text-muted)] mb-1.5';
 
 function SelectorPartida({
-  partidas, funcionSel, capituloSel, partidaId, onFuncion, onCapitulo, onPartida, onNuevaPartida,
+  partidas, funcionSel, capituloSel, partidaId, onFuncion, onCapitulo, onPartida, onNuevaPartida, funcionBloqueada,
 }: {
   partidas: Partida[];
   funcionSel: string;
@@ -48,6 +48,7 @@ function SelectorPartida({
   onCapitulo: (v: string) => void;
   onPartida: (v: string) => void;
   onNuevaPartida: () => void;
+  funcionBloqueada?: boolean;
 }) {
   const funciones = Array.from(new Map(partidas.map((p) => [p.funcion_nombre, `${p.funcion_clave} ${p.funcion_nombre}`])).entries()).sort((a, b) => a[1].localeCompare(b[1]));
   const capitulos = Array.from(new Set(partidas.filter((p) => p.funcion_nombre === funcionSel).map((p) => `${p.capitulo_clave} · ${p.capitulo_nombre}`))).sort();
@@ -58,8 +59,9 @@ function SelectorPartida({
       <Combobox
         className={inputCls}
         value={funcionSel}
+        disabled={funcionBloqueada}
         onChange={onFuncion}
-        placeholder="Función..."
+        placeholder={funcionBloqueada ? 'Mismo proyecto que el origen' : 'Función...'}
         opciones={funciones.map(([nombre, etiqueta]) => ({ value: nombre, label: etiqueta }))}
       />
       <Combobox
@@ -216,6 +218,10 @@ export default function Transferencias({ ejercicio, espacio }: { ejercicio: numb
       setError('Completa origen, destino, monto, fecha y concepto.');
       return;
     }
+    if (espacio === 'ballinas' && origenFuncion !== destinoFuncion) {
+      setError('En este espacio, las transferencias solo pueden moverse dentro del mismo proyecto (misma Función).');
+      return;
+    }
     setSaving(true);
     try {
       const res = await fetch('/api/transferencias', {
@@ -261,7 +267,10 @@ export default function Transferencias({ ejercicio, espacio }: { ejercicio: numb
             <SelectorPartida
               partidas={partidas}
               funcionSel={origenFuncion} capituloSel={origenCapitulo} partidaId={origenPartidaId}
-              onFuncion={(v) => { setOrigenFuncion(v); setOrigenCapitulo(''); setOrigenPartidaId(''); }}
+              onFuncion={(v) => {
+                setOrigenFuncion(v); setOrigenCapitulo(''); setOrigenPartidaId('');
+                if (espacio === 'ballinas') { setDestinoFuncion(v); setDestinoCapitulo(''); setDestinoPartidaId(''); }
+              }}
               onCapitulo={(v) => { setOrigenCapitulo(v); setOrigenPartidaId(''); }}
               onPartida={setOrigenPartidaId}
               onNuevaPartida={() => { setNuevaPartidaError(''); setNuevaPartidaTarget('origen'); }}
@@ -286,6 +295,7 @@ export default function Transferencias({ ejercicio, espacio }: { ejercicio: numb
               onCapitulo={(v) => { setDestinoCapitulo(v); setDestinoPartidaId(''); }}
               onPartida={setDestinoPartidaId}
               onNuevaPartida={() => { setNuevaPartidaError(''); setNuevaPartidaTarget('destino'); }}
+              funcionBloqueada={espacio === 'ballinas'}
             />
             {nuevaPartidaTarget === 'destino' && (
               <NuevaPartidaForm
